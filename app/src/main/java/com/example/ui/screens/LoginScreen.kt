@@ -1,0 +1,554 @@
+package com.example.ui.screens
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.auth.AuthState
+import com.example.data.backend.SupabaseConfig
+import com.example.data.model.UserRole
+import com.example.ui.MainViewModel
+import com.example.ui.theme.EmeraldPrimary
+import com.example.ui.theme.GoldSecondary
+
+@Composable
+fun LoginScreen(
+    viewModel: MainViewModel,
+    onLoginSuccess: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
+
+    var inputName by remember { mutableStateOf("") }
+    var inputEmail by remember { mutableStateOf("") }
+    var selectedRole by remember { mutableStateOf(UserRole.STUDENT) }
+    var googleSignInNote by remember { mutableStateOf<String?>(null) }
+
+    // Auto-detect admin when user types admin email
+    val isAdminEmail = inputEmail.trim().lowercase() == "swabi5072@gmail.com" || inputEmail.trim().lowercase().contains("admin")
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF09392B),
+                        Color(0xFF0E5B44),
+                        Color(0xFFF9F8F5),
+                        Color(0xFFFAF9F5)
+                    ),
+                    startY = 0f,
+                    endY = 1200f
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Academy Logo Crest
+            Surface(
+                shape = CircleShape,
+                color = Color.White,
+                shadowElevation = 8.dp,
+                modifier = Modifier
+                    .size(88.dp)
+                    .border(2.dp, GoldSecondary, CircleShape)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.background(
+                        Brush.radialGradient(
+                            colors = listOf(Color(0xFFFFFDF5), Color(0xFFF1EAD8))
+                        )
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MenuBook,
+                        contentDescription = "Quran Academy Crest",
+                        tint = EmeraldPrimary,
+                        modifier = Modifier.size(46.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = "Quran Academy",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+
+            Text(
+                text = "Live 1-on-1 Quran Classroom with LiveKit & Supabase",
+                fontSize = 12.sp,
+                color = Color(0xFFC5EEDB),
+                modifier = Modifier.padding(top = 4.dp),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Main Auth Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("auth_card"),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Device Setup & Sign In",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF191C1B)
+                    )
+
+                    Text(
+                        text = "Sign in on this phone as Student, Teacher, or Admin.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF757575),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                    )
+
+                    // Role selector tabs
+                    Text(
+                        text = "CHOOSE THIS DEVICE ROLE:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF555555),
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        RoleSelectionTab(
+                            title = "Student",
+                            subtitle = "Phone 1",
+                            isSelected = selectedRole == UserRole.STUDENT && !isAdminEmail,
+                            onClick = { selectedRole = UserRole.STUDENT },
+                            modifier = Modifier.weight(1f)
+                        )
+                        RoleSelectionTab(
+                            title = "Teacher",
+                            subtitle = "Phone 2",
+                            isSelected = selectedRole == UserRole.TEACHER && !isAdminEmail,
+                            onClick = { selectedRole = UserRole.TEACHER },
+                            modifier = Modifier.weight(1f)
+                        )
+                        RoleSelectionTab(
+                            title = "Admin",
+                            subtitle = "Phone 3",
+                            isSelected = selectedRole == UserRole.ADMIN || isAdminEmail,
+                            onClick = { selectedRole = UserRole.ADMIN },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Input: Full Name
+                    OutlinedTextField(
+                        value = inputName,
+                        onValueChange = { inputName = it },
+                        label = { Text("Your Full Name") },
+                        placeholder = {
+                            Text(
+                                when (selectedRole) {
+                                    UserRole.STUDENT -> "e.g. Zaid Ahmed"
+                                    UserRole.TEACHER -> "e.g. Sheikh Abdullah"
+                                    UserRole.ADMIN -> "e.g. Ustadh Ibrahim"
+                                }
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = EmeraldPrimary)
+                        },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("user_name_input"),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Input: Email / Gmail
+                    OutlinedTextField(
+                        value = inputEmail,
+                        onValueChange = { inputEmail = it },
+                        label = { Text("Gmail or Academy Email") },
+                        placeholder = {
+                            Text(
+                                when (selectedRole) {
+                                    UserRole.ADMIN -> "swabi5072@gmail.com"
+                                    UserRole.TEACHER -> "teacher@gmail.com"
+                                    UserRole.STUDENT -> "student@gmail.com"
+                                }
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = EmeraldPrimary)
+                        },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("user_email_input"),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    if (isAdminEmail) {
+                        Surface(
+                            color = GoldSecondary.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Authorized Academy Director Email detected", fontSize = 11.sp, color = EmeraldPrimary, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Primary Button: Sign In & Save to Backend
+                    Button(
+                        onClick = {
+                            val finalRole = if (isAdminEmail) UserRole.ADMIN else selectedRole
+                            val finalEmail = if (inputEmail.isNotBlank()) inputEmail.trim() else when (finalRole) {
+                                UserRole.STUDENT -> "student.quran@gmail.com"
+                                UserRole.TEACHER -> "teacher.abdullah@gmail.com"
+                                UserRole.ADMIN -> "swabi5072@gmail.com"
+                            }
+                            val finalName = if (inputName.isNotBlank()) inputName.trim() else when (finalRole) {
+                                UserRole.STUDENT -> "Zaid Ahmed"
+                                UserRole.TEACHER -> "Sheikh Abdullah Al-Mansoor"
+                                UserRole.ADMIN -> "Ustadh Ibrahim (Director)"
+                            }
+
+                            viewModel.signInWithEmailAndRole(finalName, finalEmail, finalRole)
+                            onLoginSuccess()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("sign_in_and_sync_button"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
+                    ) {
+                        Text(
+                            text = "Sign In as ${if (isAdminEmail) "Admin" else selectedRole.name.lowercase().replaceFirstChar { it.uppercase() }} & Sync",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Secondary: Continue with Google
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.signInWithGoogle(
+                                onSuccess = {
+                                    onLoginSuccess()
+                                },
+                                onFailure = { errMsg ->
+                                    googleSignInNote = "Google Play Services note: $errMsg. You can use the form above to sign in directly with your Gmail."
+                                }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("continue_with_google_button"),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFF4285F4),
+                                modifier = Modifier.size(22.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("G", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Continue with Google Account",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF333333)
+                            )
+                        }
+                    }
+
+                    googleSignInNote?.let { note ->
+                        Text(
+                            text = note,
+                            fontSize = 11.sp,
+                            color = Color(0xFF666666),
+                            modifier = Modifier.padding(top = 8.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Divider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
+                        Text(
+                            text = "  ONE-TAP PRESETS  ",
+                            fontSize = 10.sp,
+                            color = Color(0xFF9E9E9E),
+                            fontWeight = FontWeight.Bold
+                        )
+                        Divider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 1-Tap Quick Setup Presets for 3 Phones
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        PresetButton(
+                            title = "Student",
+                            sub = "Phone 1",
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                viewModel.signInWithEmailAndRole("zaidkhan", "mytest5072@gmail.com", UserRole.STUDENT)
+                                onLoginSuccess()
+                            }
+                        )
+                        PresetButton(
+                            title = "Teacher",
+                            sub = "Phone 2",
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                viewModel.signInWithEmailAndRole("saqib saib", "itskhan7733@gmail.com", UserRole.TEACHER)
+                                onLoginSuccess()
+                            }
+                        )
+                        PresetButton(
+                            title = "Admin",
+                            sub = "Phone 3",
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                viewModel.signInWithEmailAndRole("Admin Khan", "swabi5072@gmail.com", UserRole.ADMIN)
+                                onLoginSuccess()
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Automatic Multi-Phone LiveKit & Supabase Status Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.CloudDone, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Automatic Multi-Device Connection",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF191C1B)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "When you install this APK on Phone 1, Phone 2, and Phone 3, they are already configured to communicate through the same LiveKit Cloud & Supabase backend automatically.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF555555),
+                        lineHeight = 17.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Surface(
+                        color = Color(0xFFF4F6F5),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = "LiveKit Server: ${SupabaseConfig.liveKitServerUrl}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF2E7D32)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Backend Sync: Active polling & real-time ring detection",
+                                fontSize = 11.sp,
+                                color = Color(0xFF616161)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun RoleSelectionTab(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(58.dp),
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) EmeraldPrimary else Color(0xFFF5F5F5),
+        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) Color.White else Color(0xFF333333)
+            )
+            Text(
+                text = subtitle,
+                fontSize = 10.sp,
+                color = if (isSelected) GoldSecondary else Color(0xFF888888)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PresetButton(
+    title: String,
+    sub: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldPrimary.copy(alpha = 0.4f)),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = EmeraldPrimary)
+            Text(text = sub, fontSize = 9.sp, color = Color(0xFF757575))
+        }
+    }
+}

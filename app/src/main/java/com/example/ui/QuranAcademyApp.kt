@@ -1,0 +1,224 @@
+package com.example.ui
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.auth.AuthState
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.outlined.AdminPanelSettings
+import com.example.data.model.UserRole
+import com.example.ui.screens.AdminScreen
+import com.example.ui.screens.ClassesScreen
+import com.example.ui.screens.HomeScreen
+import com.example.ui.screens.IncomingCallOverlay
+import com.example.ui.screens.LiveClassroomScreen
+import com.example.ui.screens.LoginScreen
+import com.example.ui.screens.MessagesScreen
+import com.example.ui.screens.ProfileScreen
+import com.example.ui.theme.EmeraldPrimary
+import com.example.ui.theme.GoldSecondary
+
+enum class AcademyTab(
+    val title: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector
+) {
+    HOME("Home", Icons.Filled.Home, Icons.Outlined.Home),
+    CLASSES("Classes", Icons.Filled.Book, Icons.Outlined.Book),
+    ADMIN("Admin", Icons.Filled.AdminPanelSettings, Icons.Outlined.AdminPanelSettings),
+    MESSAGES("Messages", Icons.Filled.Chat, Icons.Outlined.Chat),
+    PROFILE("Profile", Icons.Filled.Person, Icons.Outlined.Person)
+}
+
+@Composable
+fun QuranAcademyApp(
+    viewModel: MainViewModel,
+    modifier: Modifier = Modifier
+) {
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val activeLiveClass by viewModel.activeLiveClass.collectAsStateWithLifecycle()
+    val incomingCallClass by viewModel.incomingCallClass.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val messages by viewModel.messages.collectAsStateWithLifecycle()
+
+    var currentTab by remember { mutableStateOf(AcademyTab.HOME) }
+    val unreadMessageCount = messages.count { !it.isRead && !it.isFromMe }
+
+    val visibleTabs = if (currentUser.role == UserRole.ADMIN) {
+        listOf(AcademyTab.HOME, AcademyTab.CLASSES, AcademyTab.ADMIN, AcademyTab.MESSAGES, AcademyTab.PROFILE)
+    } else {
+        listOf(AcademyTab.HOME, AcademyTab.CLASSES, AcademyTab.MESSAGES, AcademyTab.PROFILE)
+    }
+
+    when {
+        // Incoming Call Ringing Overlay Takes Full Precedence
+        incomingCallClass != null -> {
+            IncomingCallOverlay(
+                quranClass = incomingCallClass!!,
+                onAccept = {
+                    viewModel.acceptIncomingCall(incomingCallClass!!)
+                },
+                onDecline = {
+                    viewModel.dismissIncomingCall()
+                }
+            )
+        }
+
+        // Unauthenticated -> Show Login Screen
+        authState is AuthState.Unauthenticated -> {
+            LoginScreen(
+                viewModel = viewModel,
+                onLoginSuccess = { currentTab = AcademyTab.HOME }
+            )
+        }
+
+        // Active Live Quran Classroom Session -> Immersive Fullscreen Video Call
+        activeLiveClass != null -> {
+            BackHandler {
+                // Back handler leaves class cleanly
+                viewModel.leaveClass()
+            }
+            LiveClassroomScreen(
+                quranClass = activeLiveClass!!,
+                viewModel = viewModel,
+                onLeaveClass = {
+                    viewModel.leaveClass()
+                }
+            )
+        }
+
+        // Authenticated Main Academy Experience with Navigation
+        else -> {
+            BackHandler(enabled = currentTab != AcademyTab.HOME) {
+                currentTab = AcademyTab.HOME
+            }
+
+            Scaffold(
+                modifier = modifier.fillMaxSize(),
+                bottomBar = {
+                    NavigationBar(
+                        containerColor = Color.White,
+                        contentColor = EmeraldPrimary,
+                        modifier = Modifier.testTag("academy_bottom_navigation")
+                    ) {
+                        visibleTabs.forEach { tab ->
+                            val isSelected = currentTab == tab
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = { currentTab = tab },
+                                icon = {
+                                    if (tab == AcademyTab.MESSAGES && unreadMessageCount > 0) {
+                                        BadgedBox(
+                                            badge = {
+                                                Badge(containerColor = GoldSecondary) {
+                                                    Text("$unreadMessageCount", color = Color.White)
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                                contentDescription = tab.title
+                                            )
+                                        }
+                                    } else {
+                                        Icon(
+                                            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                            contentDescription = tab.title
+                                        )
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = tab.title,
+                                        fontSize = 10.sp
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = EmeraldPrimary,
+                                    selectedTextColor = EmeraldPrimary,
+                                    indicatorColor = EmeraldPrimary.copy(alpha = 0.15f),
+                                    unselectedIconColor = Color(0xFF757575),
+                                    unselectedTextColor = Color(0xFF757575)
+                                )
+                            )
+                        }
+                    }
+                }
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    when (currentTab) {
+                        AcademyTab.HOME -> {
+                            HomeScreen(
+                                viewModel = viewModel,
+                                onNavigateToLiveClass = { quranClass ->
+                                    viewModel.joinClass(quranClass)
+                                },
+                                onNavigateToClasses = { currentTab = AcademyTab.CLASSES },
+                                onNavigateToMessages = { currentTab = AcademyTab.MESSAGES }
+                            )
+                        }
+                        AcademyTab.CLASSES -> {
+                            ClassesScreen(
+                                viewModel = viewModel,
+                                onNavigateToLiveClass = { quranClass ->
+                                    viewModel.joinClass(quranClass)
+                                }
+                            )
+                        }
+                        AcademyTab.ADMIN -> {
+                            AdminScreen(
+                                viewModel = viewModel
+                            )
+                        }
+                        AcademyTab.MESSAGES -> {
+                            MessagesScreen(
+                                viewModel = viewModel
+                            )
+                        }
+                        AcademyTab.PROFILE -> {
+                            ProfileScreen(
+                                viewModel = viewModel,
+                                onLogout = {
+                                    currentTab = AcademyTab.HOME
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

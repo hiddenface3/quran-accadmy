@@ -1,0 +1,6 @@
+{
+  "name": "Quran Academy",
+  "description": "Comprehensive mobile academy for Quran students and teachers with live video classes, class scheduling, Google login, and real-time messaging.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
