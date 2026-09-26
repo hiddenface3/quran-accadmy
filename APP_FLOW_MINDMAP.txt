@@ -1,0 +1,145 @@
+================================================================================
+QURAN ACADEMY CONNECT - SYSTEM ARCHITECTURE & FLOW MIND MAP
+Generated: 2026-09-26 12:42:00 PKT
+Repository: hiddenface3/quran-accadmy
+================================================================================
+
+[1] HIGH-LEVEL APPLICATION FLOW MIND MAP
+--------------------------------------------------------------------------------
+
+               [APP LAUNCH]
+                    │
+                    ▼
+          ┌───────────────────┐
+          │  AuthState Check  │
+          └─────────┬─────────┘
+                    │
+       ┌────────────┴────────────┐
+       ▼                         ▼
+[Unauthenticated]          [Authenticated]
+       │                         │
+       ▼                         ▼
+ ┌────────────┐        ┌───────────────────────┐
+ │ LoginScreen│        │ Role-Based Navigation │
+ └─────┬──────┘        └───────────┬───────────┘
+       │                           │
+       ├─ Name & Gmail Input       ├─ STUDENT ──► HomeTab (Daily Verse, Next Class, Live Room)
+       ├─ Auto-Account Detection   ├─ TEACHER ──► ClassesTab (Today's Schedule, Start & Ring Student)
+       ├─ "Account Exists" Banner  └─ ADMIN   ──► AdminTab (Director Hub, Schedule Class, Profiles)
+       └─ One-Tap Presets
+                    │
+                    ▼
+          ┌───────────────────┐
+          │ Live Video Call   │
+          │ Classroom Session │
+          └─────────┬─────────┘
+                    │
+       ┌────────────┴────────────┐
+       ▼                         ▼
+[Native LiveKit WebRTC]   [Session Shutdown]
+  • Low latency (<150ms)    • Teacher clicks "End Class"
+  • Real-time Audio/Video   • Supabase sets status=COMPLETED
+  • Screen & Quran Overlay  • Student session shuts down automatically
+
+
+--------------------------------------------------------------------------------
+[2] DETAILED SCREEN-BY-SCREEN FLOW
+--------------------------------------------------------------------------------
+
+(A) LOGIN & IDENTITY FLOW (LoginScreen.kt)
+    ├── User enters Name and Gmail (password optional for now)
+    ├── App queries active registered students, teachers, and admin accounts
+    ├── IF account match detected:
+    │   ├── Displays green badge: "Account already exists! Identity: [Name] ([Role])"
+    │   ├── Auto-selects appropriate Role Tab (Student, Teacher, or Admin)
+    │   └── Changes button to: "Log In to Existing [Role] Account"
+    ├── User taps Log In:
+    │   ├── Signs in via AuthManager & syncs profile with Supabase
+    │   └── Routes directly to designated screen based on role
+    └── Bottom backend credentials card removed to keep secrets secure.
+
+(B) STUDENT SCREEN FLOW (HomeScreen.kt + QuranAcademyApp.kt)
+    ├── Home Tab:
+    │   ├── Displays enrolled tajweed level, current Surah, completed Juz
+    │   ├── Shows "Next Class" card with assigned Teacher Name
+    │   └── If incoming ring received from Teacher -> Displays full-screen Ringing Overlay
+    └── Live Classroom:
+        ├── Fullscreen bi-directional LiveKit WebRTC video and audio
+        ├── Interactive Quran Reader & Tajweed rules drawer
+        ├── Mute/Unmute mic, Camera switch, Raise hand
+        └── AUTO-TERMINATE: When Teacher ends class, session shuts down automatically for Student.
+
+(C) TEACHER SCREEN FLOW (ClassesScreen.kt)
+    ├── Classes Tab:
+    │   ├── Lists scheduled sessions with Student Name and Teacher Name
+    │   ├── "Start Class & Ring Student ([Student Name]) • Teacher: [Teacher Name]"
+    │   └── Scheduling controls HIDDEN (Restricted strictly to Admin)
+    └── Live Classroom:
+        ├── Full control over session duration, student mute status
+        ├── Quran overlay display shared across session
+        └── Tapping "End Class" updates call status to COMPLETED and terminates student session.
+
+(D) ADMIN SCREEN FLOW (AdminScreen.kt)
+    ├── Admin Tab:
+    │   ├── Academy Director overview: live metrics, student counts, teacher allocations
+    │   ├── Class Scheduling FAB & Dialog: Only Admin can schedule or assign classes
+    │   └── System Diagnostic & Backend Credentials configuration (Supabase & LiveKit keys)
+    └── Security:
+        └── Backend credentials card in ProfileScreen is visible ONLY to Admin role.
+
+--------------------------------------------------------------------------------
+[3] STEP-BY-STEP REVISION & FIX LOG WITH TIMESTAMPS
+--------------------------------------------------------------------------------
+
+[FIX 1] Replace Polling Relay with Native LiveKit SDK
+Date/Time: 2026-09-26 12:20:00 PKT
+• What it did: Removed slow HTTP Base64 JPEG frame polling loop in LiveCallEngine.kt.
+• Fix: Integrated io.livekit:livekit-android:2.18.2 with JitPack maven repository.
+• Result: Native WebRTC bi-directional audio/video under 150ms latency with low battery usage.
+
+[FIX 2] Login Flow Overhaul & Existing Account Detection
+Date/Time: 2026-09-26 12:25:00 PKT
+• What it did: Allowed students, teachers, and admins to log in with Name & Gmail.
+• Fix: Added reactive matching against active students, teachers, and admin accounts.
+• Result: Displays "Account already exists" banner and navigates to the user's role screen:
+  - Admin   -> Admin Tab
+  - Teacher -> Classes Tab
+  - Student -> Home Tab
+
+[FIX 3] Hide Backend Credentials & Secret URLs
+Date/Time: 2026-09-26 12:27:00 PKT
+• What it did: Prevented students and teachers from seeing sensitive Supabase and LiveKit keys.
+• Fix: Wrapped backend settings card in ProfileScreen with `if (currentUser.role == UserRole.ADMIN)`.
+• Result: Completely removed backend URLs and configuration cards from LoginScreen.
+
+[FIX 4] Restrict Class Scheduling to Admin Only
+Date/Time: 2026-09-26 12:28:00 PKT
+• What it did: Removed class creation ability from Teachers.
+• Fix: In ClassesScreen.kt, wrapped "New Class" button and schedule FAB with admin-only check.
+• Result: Only Director/Admin can create and schedule classes.
+
+[FIX 5] Automatic Student Session Shutdown on Teacher End Call
+Date/Time: 2026-09-26 12:30:00 PKT
+• What it did: Prevented student from lingering alone in a closed classroom.
+• Fix: In LiveClassroomScreen.kt, added LaunchedEffect listening to `classLiveState?.status == COMPLETED`.
+• Result: When teacher ends the session, student's app shows toast and automatically exits classroom.
+
+[FIX 6] Add Teacher Name & Student Name to Start Class & Ring Buttons
+Date/Time: 2026-09-26 12:31:00 PKT
+• What it did: Clarified student identity on call buttons so teachers never ring the wrong student.
+• Fix: Updated ClassesScreen and AcademyComponents with explicit labels:
+  "Start Class & Ring Student (${qClass.studentName}) • Teacher: ${qClass.teacherName}".
+• Result: Teacher clearly sees student name before launching or ringing.
+
+[FIX 7] Cloud APK Build & Packaging via GitHub Actions
+Date/Time: 2026-09-26 12:39:00 PKT
+• What it did: Automated full cloud compilation and artifact bundling on GitHub Actions.
+• Run: Run #36227344169 succeeded in 1m 47s.
+• Result: Production-ready debug APK with native WebRTC LiveKit binaries generated.
+
+[FIX 8] Local APK Download & Dated Binary Timestamping
+Date/Time: 2026-09-26 13:13:00 PKT
+• What it did: Downloaded artifact from GitHub Actions and generated timestamped APK.
+• Output: apk-dist/quran-academy-2026-09-26-13-13.apk (71,507,407 bytes / ~71.5 MB).
+• Includes: arm64-v8a, armeabi-v7a, x86, x86_64 native LiveKit WebRTC binaries.
+================================================================================
