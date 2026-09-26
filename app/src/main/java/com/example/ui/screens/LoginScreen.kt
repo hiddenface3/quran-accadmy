@@ -218,33 +218,42 @@ fun LoginScreen(
                         modifier = Modifier.align(Alignment.Start)
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Role selector tabs (iOS Segmented Pill)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp),
+                        shape = RoundedCornerShape(29.dp),
+                        color = Color(0xFFF1F5F9)
                     ) {
-                        RoleSelectionTab(
-                            title = "Student",
-                            subtitle = if (activeRole == UserRole.STUDENT && detectedExistingAccount != null) "Detected" else "Portal",
-                            isSelected = activeRole == UserRole.STUDENT,
-                            onClick = { selectedRole = UserRole.STUDENT },
-                            modifier = Modifier.weight(1f)
-                        )
-                        RoleSelectionTab(
-                            title = "Teacher",
-                            subtitle = if (activeRole == UserRole.TEACHER && detectedExistingAccount != null) "Detected" else "Portal",
-                            isSelected = activeRole == UserRole.TEACHER,
-                            onClick = { selectedRole = UserRole.TEACHER },
-                            modifier = Modifier.weight(1f)
-                        )
-                        RoleSelectionTab(
-                            title = "Admin",
-                            subtitle = if (activeRole == UserRole.ADMIN && detectedExistingAccount != null) "Detected" else "Portal",
-                            isSelected = activeRole == UserRole.ADMIN,
-                            onClick = { selectedRole = UserRole.ADMIN },
-                            modifier = Modifier.weight(1f)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            RoleSelectionTab(
+                                title = "Student",
+                                subtitle = if (activeRole == UserRole.STUDENT && detectedExistingAccount != null) "Detected" else "Portal",
+                                isSelected = activeRole == UserRole.STUDENT,
+                                onClick = { selectedRole = UserRole.STUDENT },
+                                modifier = Modifier.weight(1f)
+                            )
+                            RoleSelectionTab(
+                                title = "Teacher",
+                                subtitle = if (activeRole == UserRole.TEACHER && detectedExistingAccount != null) "Detected" else "Portal",
+                                isSelected = activeRole == UserRole.TEACHER,
+                                onClick = { selectedRole = UserRole.TEACHER },
+                                modifier = Modifier.weight(1f)
+                            )
+                            RoleSelectionTab(
+                                title = "Admin",
+                                subtitle = if (activeRole == UserRole.ADMIN && detectedExistingAccount != null) "Detected" else "Portal",
+                                isSelected = activeRole == UserRole.ADMIN,
+                                onClick = { selectedRole = UserRole.ADMIN },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -538,15 +547,13 @@ private fun RoleSelectionTab(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(58.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) Color(0xFF059669) else Color(0xFFF1F5F9),
-        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        modifier = modifier.fillMaxSize(),
+        shape = RoundedCornerShape(25.dp),
+        color = if (isSelected) Color(0xFF059669) else Color.Transparent,
+        shadowElevation = if (isSelected) 2.dp else 0.dp
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(4.dp),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

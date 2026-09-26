@@ -105,6 +105,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (saved != null) {
             repository.updateCurrentUser(saved)
         }
+        com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
 
         viewModelScope.launch {
             incomingCallClass.collect { incoming ->
@@ -131,6 +132,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val result = authManager.signInWithGoogle()
             result.onSuccess { user ->
                 repository.updateCurrentUser(user)
+                com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
                 onSuccess()
             }.onFailure { e ->
                 onFailure(e.localizedMessage ?: "Google sign-in canceled or not configured on device")
@@ -141,6 +143,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun signInWithEmailAndRole(name: String, email: String, role: UserRole) {
         val user = authManager.signInWithEmailAndRole(name, email, role)
         repository.updateCurrentUser(user)
+        com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
     }
 
     fun signInAsRole(role: UserRole) {
@@ -151,6 +154,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             repository.switchRole(role)
         }
+        com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
     }
 
     fun saveLiveKitCredentials(serverUrl: String, apiKey: String, apiSecret: String) {

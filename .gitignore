@@ -18,3 +18,5 @@ local.properties
 debug.keystore
 apk-dist/
 *.zip
+*firebase-adminsdk*.json
+*service-account*.json

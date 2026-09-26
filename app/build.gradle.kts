@@ -96,6 +96,7 @@ dependencies {
   implementation("io.livekit:livekit-android:2.18.2")
   implementation("androidx.security:security-crypto:1.1.0-alpha06")
   implementation(libs.firebase.ai)
+  implementation(libs.firebase.messaging)
   // Uncomment to use Firestore:
   // implementation(libs.firebase.firestore)
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.animation.togetherWith
 import com.example.auth.AuthState
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.outlined.AdminPanelSettings
@@ -87,148 +88,166 @@ fun QuranAcademyApp(
         listOf(AcademyTab.HOME, AcademyTab.CLASSES, AcademyTab.MESSAGES, AcademyTab.PROFILE)
     }
 
-    when {
-        // Incoming Call Ringing Overlay Takes Full Precedence
-        incomingCallClass != null -> {
-            IncomingCallOverlay(
-                quranClass = incomingCallClass!!,
-                onAccept = {
-                    viewModel.acceptIncomingCall(incomingCallClass!!)
-                },
-                onDecline = {
-                    viewModel.dismissIncomingCall()
-                }
-            )
-        }
-
-        // Unauthenticated -> Show Login Screen
-        authState is AuthState.Unauthenticated -> {
-            LoginScreen(
-                viewModel = viewModel,
-                onLoginSuccess = { role ->
-                    currentTab = when (role) {
-                        UserRole.ADMIN -> AcademyTab.ADMIN
-                        UserRole.TEACHER -> AcademyTab.CLASSES
-                        UserRole.STUDENT -> AcademyTab.HOME
+    androidx.compose.animation.AnimatedContent(
+        targetState = Triple(incomingCallClass, authState, activeLiveClass),
+        transitionSpec = {
+            androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(400)) togetherWith
+                    androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(400))
+        },
+        label = "AppStageTransition"
+    ) { (callClass, auth, liveClass) ->
+        when {
+            // Incoming Call Ringing Overlay Takes Full Precedence
+            callClass != null -> {
+                IncomingCallOverlay(
+                    quranClass = callClass,
+                    onAccept = {
+                        viewModel.acceptIncomingCall(callClass)
+                    },
+                    onDecline = {
+                        viewModel.dismissIncomingCall()
                     }
-                }
-            )
-        }
-
-        // Active Live Quran Classroom Session -> Immersive Fullscreen Video Call
-        activeLiveClass != null -> {
-            BackHandler {
-                // Back handler leaves class cleanly
-                viewModel.leaveClass()
+                )
             }
-            LiveClassroomScreen(
-                quranClass = activeLiveClass!!,
-                viewModel = viewModel,
-                onLeaveClass = {
+
+            // Unauthenticated -> Show Login Screen
+            auth is AuthState.Unauthenticated -> {
+                LoginScreen(
+                    viewModel = viewModel,
+                    onLoginSuccess = { role ->
+                        currentTab = when (role) {
+                            UserRole.ADMIN -> AcademyTab.ADMIN
+                            UserRole.TEACHER -> AcademyTab.CLASSES
+                            UserRole.STUDENT -> AcademyTab.HOME
+                        }
+                    }
+                )
+            }
+
+            // Active Live Quran Classroom Session -> Immersive Fullscreen Video Call
+            liveClass != null -> {
+                BackHandler {
+                    // Back handler leaves class cleanly
                     viewModel.leaveClass()
                 }
-            )
-        }
-
-        // Authenticated Main Academy Experience with Navigation
-        else -> {
-            BackHandler(enabled = currentTab != AcademyTab.HOME) {
-                currentTab = AcademyTab.HOME
+                LiveClassroomScreen(
+                    quranClass = liveClass,
+                    viewModel = viewModel,
+                    onLeaveClass = {
+                        viewModel.leaveClass()
+                    }
+                )
             }
 
-            Scaffold(
-                modifier = modifier.fillMaxSize(),
-                bottomBar = {
-                    NavigationBar(
-                        containerColor = Color.White,
-                        contentColor = EmeraldPrimary,
-                        modifier = Modifier.testTag("academy_bottom_navigation")
-                    ) {
-                        visibleTabs.forEach { tab ->
-                            val isSelected = currentTab == tab
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = { currentTab = tab },
-                                icon = {
-                                    if (tab == AcademyTab.MESSAGES && unreadMessageCount > 0) {
-                                        BadgedBox(
-                                            badge = {
-                                                Badge(containerColor = GoldSecondary) {
-                                                    Text("$unreadMessageCount", color = Color.White)
+            // Authenticated Main Academy Experience with Navigation
+            else -> {
+                BackHandler(enabled = currentTab != AcademyTab.HOME) {
+                    currentTab = AcademyTab.HOME
+                }
+
+                Scaffold(
+                    modifier = modifier.fillMaxSize(),
+                    bottomBar = {
+                        NavigationBar(
+                            containerColor = Color.White,
+                            contentColor = EmeraldPrimary,
+                            modifier = Modifier.testTag("academy_bottom_navigation")
+                        ) {
+                            visibleTabs.forEach { tab ->
+                                val isSelected = currentTab == tab
+                                NavigationBarItem(
+                                    selected = isSelected,
+                                    onClick = { currentTab = tab },
+                                    icon = {
+                                        if (tab == AcademyTab.MESSAGES && unreadMessageCount > 0) {
+                                            BadgedBox(
+                                                badge = {
+                                                    Badge(containerColor = GoldSecondary) {
+                                                        Text("$unreadMessageCount", color = Color.White)
+                                                    }
                                                 }
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                                    contentDescription = tab.title
+                                                )
                                             }
-                                        ) {
+                                        } else {
                                             Icon(
                                                 imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
                                                 contentDescription = tab.title
                                             )
                                         }
-                                    } else {
-                                        Icon(
-                                            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                                            contentDescription = tab.title
+                                    },
+                                    label = {
+                                        Text(
+                                            text = tab.title,
+                                            fontSize = 10.sp
                                         )
-                                    }
-                                },
-                                label = {
-                                    Text(
-                                        text = tab.title,
-                                        fontSize = 10.sp
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = EmeraldPrimary,
+                                        selectedTextColor = EmeraldPrimary,
+                                        indicatorColor = EmeraldPrimary.copy(alpha = 0.15f),
+                                        unselectedIconColor = Color(0xFF757575),
+                                        unselectedTextColor = Color(0xFF757575)
                                     )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = EmeraldPrimary,
-                                    selectedTextColor = EmeraldPrimary,
-                                    indicatorColor = EmeraldPrimary.copy(alpha = 0.15f),
-                                    unselectedIconColor = Color(0xFF757575),
-                                    unselectedTextColor = Color(0xFF757575)
                                 )
-                            )
+                            }
                         }
                     }
-                }
-            ) { innerPadding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                ) {
-                    when (currentTab) {
-                        AcademyTab.HOME -> {
-                            HomeScreen(
-                                viewModel = viewModel,
-                                onNavigateToLiveClass = { quranClass ->
-                                    viewModel.joinClass(quranClass)
-                                },
-                                onNavigateToClasses = { currentTab = AcademyTab.CLASSES },
-                                onNavigateToMessages = { currentTab = AcademyTab.MESSAGES }
-                            )
-                        }
-                        AcademyTab.CLASSES -> {
-                            ClassesScreen(
-                                viewModel = viewModel,
-                                onNavigateToLiveClass = { quranClass ->
-                                    viewModel.joinClass(quranClass)
+                ) { innerPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
+                        androidx.compose.animation.AnimatedContent(
+                            targetState = currentTab,
+                            transitionSpec = {
+                                androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) togetherWith
+                                        androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(300))
+                            },
+                            label = "TabTransition"
+                        ) { tab ->
+                            when (tab) {
+                                AcademyTab.HOME -> {
+                                    HomeScreen(
+                                        viewModel = viewModel,
+                                        onNavigateToLiveClass = { quranClass ->
+                                            viewModel.joinClass(quranClass)
+                                        },
+                                        onNavigateToClasses = { currentTab = AcademyTab.CLASSES },
+                                        onNavigateToMessages = { currentTab = AcademyTab.MESSAGES }
+                                    )
                                 }
-                            )
-                        }
-                        AcademyTab.ADMIN -> {
-                            AdminScreen(
-                                viewModel = viewModel
-                            )
-                        }
-                        AcademyTab.MESSAGES -> {
-                            MessagesScreen(
-                                viewModel = viewModel
-                            )
-                        }
-                        AcademyTab.PROFILE -> {
-                            ProfileScreen(
-                                viewModel = viewModel,
-                                onLogout = {
-                                    currentTab = AcademyTab.HOME
+                                AcademyTab.CLASSES -> {
+                                    ClassesScreen(
+                                        viewModel = viewModel,
+                                        onNavigateToLiveClass = { quranClass ->
+                                            viewModel.joinClass(quranClass)
+                                        }
+                                    )
                                 }
-                            )
+                                AcademyTab.ADMIN -> {
+                                    AdminScreen(
+                                        viewModel = viewModel
+                                    )
+                                }
+                                AcademyTab.MESSAGES -> {
+                                    MessagesScreen(
+                                        viewModel = viewModel
+                                    )
+                                }
+                                AcademyTab.PROFILE -> {
+                                    ProfileScreen(
+                                        viewModel = viewModel,
+                                        onLogout = {
+                                            currentTab = AcademyTab.HOME
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }

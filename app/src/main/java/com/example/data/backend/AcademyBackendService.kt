@@ -419,6 +419,18 @@ class AcademyBackendService {
                 .post(body)
                 .build()
 
+            // Also dispatch high-priority FCM push to wake up device when app is closed / phone locked
+            try {
+                com.example.service.FcmNotificationSender.sendIncomingCallPush(
+                    classId = qClass.id,
+                    teacherName = teacherName,
+                    studentName = qClass.studentName,
+                    roomName = qClass.liveKitRoomName
+                )
+            } catch (fcmEx: Exception) {
+                Log.w(TAG, "FCM Push dispatch error: ${fcmEx.message}")
+            }
+
             client.newCall(request).execute().use { response ->
                 Result.success(response.isSuccessful || response.code in 200..204)
             }
@@ -432,6 +444,13 @@ class AcademyBackendService {
      */
     suspend fun dismissCallSignal(classId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
+            // Also dispatch FCM cancel push
+            try {
+                com.example.service.FcmNotificationSender.sendCancelCallPush(classId)
+            } catch (fcmEx: Exception) {
+                Log.w(TAG, "FCM Cancel dispatch error: ${fcmEx.message}")
+            }
+
             val activeCallUrl = "${SupabaseConfig.projectUrl}/rest/v1/active_calls?class_id=eq.$classId"
             val callJson = JSONObject().apply {
                 put("is_ringing", false)

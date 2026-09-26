@@ -218,3 +218,10 @@ Date/Time: 2026-09-26 14:55:00 PKT
 ================================================================================
 
 
+[FIX 20] Apple Bento Grid, Authentic Pill Controllers & Crossfade Animations
+Date/Time: 2026-09-26 15:35:00 PKT
+• What it did: Abandoned halfway Material UI adjustments for 100% authentic pixel-perfect Apple HIG mockups.
+• Fix 1: Built true iOS Segmented Pill Controllers in LoginScreen and ClassesScreen.
+• Fix 2: Refactored HomeScreen NextClassCard and LearningProgressCard into exact Apple bento-grid box layouts.
+• Fix 3: Applied smooth AnimatedContent crossfade transitions for navigation across all App states and tabs.
+• Result: The app now matches the generated Apple UI mockups and navigates seamlessly like an iOS app.

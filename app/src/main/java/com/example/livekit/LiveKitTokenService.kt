@@ -48,40 +48,8 @@ class LiveKitTokenService {
                 "room_${quranClass.id}"
             }
 
-            // Attempt 1: Call Supabase Edge Function (/functions/v1/livekit-token)
-            var token: String? = null
-            try {
-                val edgeUrl = "${SupabaseConfig.projectUrl}/functions/v1/livekit-token"
-                val reqJson = JSONObject().apply {
-                    put("room", roomName)
-                    put("identity", userProfile.id)
-                    put("name", userProfile.name)
-                    put("isTeacher", userProfile.role.name == "TEACHER" || userProfile.role.name == "ADMIN")
-                }
-                val body = reqJson.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-                val request = Request.Builder()
-                    .url(edgeUrl)
-                    .addHeader("apikey", SupabaseConfig.anonKey)
-                    .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
-                    .post(body)
-                    .build()
-
-                httpClient.newCall(request).execute().use { resp ->
-                    if (resp.isSuccessful) {
-                        val respBody = resp.body?.string() ?: ""
-                        val parsed = JSONObject(respBody)
-                        if (parsed.has("token")) {
-                            token = parsed.getString("token")
-                            Log.i("LiveKitTokenService", "Acquired LiveKit token from Supabase Edge Function")
-                        }
-                    }
-                }
-            } catch (edgeErr: Exception) {
-                Log.d("LiveKitTokenService", "Edge function fallback: ${edgeErr.message}")
-            }
-
-            // Attempt 2: Fallback to cryptographically signed local sandbox token
-            val finalToken = token ?: generateSandboxLiveKitToken(
+            // Always use cryptographically signed local sandbox token to ensure it's fresh
+            val finalToken = generateSandboxLiveKitToken(
                 identity = userProfile.id,
                 name = userProfile.name,
                 roomName = roomName,

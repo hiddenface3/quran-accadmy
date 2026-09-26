@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "android-debugging": {
+      "source": "rcosteira79/android-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/android-skills/skills/android-debugging/SKILL.md",
+      "computedHash": "5ecb0f0b69b2e20756ce0f939fb9ca11cb861b44da04cd942cb51f4a2ee07449"
+    },
+    "safe-debug": {
+      "source": "lllllllama/rigorpilot-skills",
+      "sourceType": "github",
+      "skillPath": "skills/safe-debug/SKILL.md",
+      "computedHash": "f09bc8d4d750dd7cab6a61c05af7720d5543ff74bec8e557ae5e3461212c374c"
+    }
+  }
+}

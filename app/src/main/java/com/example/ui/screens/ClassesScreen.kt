@@ -143,21 +143,27 @@ fun ClassesScreen(
                     ) {
                         tabs.forEachIndexed { index, title ->
                             val isSelected = selectedTabIndex == index
-                            Box(
+                            Surface(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(if (isSelected) Color.White else Color.Transparent)
-                                    .clickable { selectedTabIndex = index }
-                                    .padding(vertical = 9.dp),
-                                contentAlignment = Alignment.Center
+                                    .padding(horizontal = 2.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isSelected) Color.White else Color.Transparent,
+                                shadowElevation = if (isSelected) 2.dp else 0.dp,
+                                onClick = { selectedTabIndex = index }
                             ) {
-                                Text(
-                                    text = title,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color(0xFF0F172A) else Color(0xFF64748B)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .padding(vertical = 9.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = title,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) Color(0xFF0F172A) else Color(0xFF64748B)
+                                    )
+                                }
                             }
                         }
                     }
