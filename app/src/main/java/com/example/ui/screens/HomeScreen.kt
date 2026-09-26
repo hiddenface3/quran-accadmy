@@ -281,15 +281,18 @@ fun HomeScreen(
         }
     }
 
-    // Role Switch Dialog (Allows switching between Student, Teacher, and Admin)
+    // Role Switch Dialog (Apple HIG Squircle Modal)
     if (showRoleSwitchDialog) {
         AlertDialog(
             onDismissRequest = { showRoleSwitchDialog = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(24.dp),
             title = {
                 Text(
                     text = "Switch Academy Role",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    fontSize = 18.sp,
+                    color = Color(0xFF0F172A)
                 )
             },
             text = {
@@ -297,7 +300,7 @@ fun HomeScreen(
                     Text(
                         text = "Choose which role perspective to preview in Quran Academy:",
                         fontSize = 13.sp,
-                        color = Color(0xFF616161)
+                        color = Color(0xFF64748B)
                     )
                     Spacer(modifier = Modifier.height(14.dp))
 
@@ -338,23 +341,34 @@ fun HomeScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showRoleSwitchDialog = false }) {
-                    Text("Close")
+                    Text("Close", color = Color(0xFF059669), fontWeight = FontWeight.Bold)
                 }
             }
         )
     }
 
-    // Notifications Bottom Sheet
+    // Apple Notifications Bottom Sheet
     if (showNotificationsSheet) {
         val sheetState = rememberModalBottomSheetState()
         ModalBottomSheet(
             onDismissRequest = { showNotificationsSheet = false },
-            sheetState = sheetState
+            sheetState = sheetState,
+            containerColor = Color.White,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            dragHandle = {
+                Surface(
+                    shape = RoundedCornerShape(2.dp),
+                    color = Color(0xFFCBD5E1),
+                    modifier = Modifier
+                        .padding(top = 10.dp, bottom = 6.dp)
+                        .size(width = 36.dp, height = 4.dp)
+                ) {}
+            }
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -365,65 +379,72 @@ fun HomeScreen(
                         text = "Academy Notifications",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF191C1B)
+                        color = Color(0xFF0F172A)
                     )
-                    IconButton(onClick = { showNotificationsSheet = false }) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                    IconButton(
+                        onClick = { showNotificationsSheet = false },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(Color(0xFFF1F5F9), CircleShape)
+                    ) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 notifications.forEach { notif ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 6.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F8F5)),
-                        shape = RoundedCornerShape(12.dp)
+                            .padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.Top
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = EmeraldPrimary.copy(alpha = 0.15f),
-                                modifier = Modifier.size(36.dp)
+                                color = Color(0xFFECFDF5),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFA7F3D0)),
+                                modifier = Modifier.size(38.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Default.Notifications,
                                         contentDescription = null,
-                                        tint = EmeraldPrimary,
+                                        tint = Color(0xFF059669),
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
                                     text = notif.title,
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF191C1B)
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF0F172A)
                                 )
                                 Text(
                                     text = notif.body,
                                     fontSize = 12.sp,
-                                    color = Color(0xFF616161)
+                                    color = Color(0xFF64748B)
                                 )
                                 Text(
                                     text = notif.timestamp,
                                     fontSize = 10.sp,
-                                    color = Color(0xFF9E9E9E),
+                                    color = Color(0xFF94A3B8),
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
                             }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
@@ -440,21 +461,25 @@ private fun RoleOptionItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(10.dp),
-        color = if (isSelected) EmeraldPrimary.copy(alpha = 0.12f) else Color(0xFFF5F5F5),
-        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, EmeraldPrimary) else null
+        shape = RoundedCornerShape(14.dp),
+        color = if (isSelected) Color(0xFFECFDF5) else Color(0xFFF8FAFC),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isSelected) Color(0xFF10B981) else Color(0xFFE2E8F0)
+        )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Text(
                 text = title,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = if (isSelected) EmeraldPrimary else Color(0xFF191C1B)
+                color = if (isSelected) Color(0xFF065F46) else Color(0xFF0F172A)
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = desc,
                 fontSize = 11.sp,
-                color = Color(0xFF757575)
+                color = Color(0xFF64748B)
             )
         }
     }

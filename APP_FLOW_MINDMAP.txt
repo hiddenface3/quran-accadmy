@@ -204,4 +204,14 @@ Date/Time: 2026-09-26 14:40:00 PKT
 • Fix 3: Upgraded LoginScreen with 24dp rounded squircle auth cards, clean role selector capsules, and slate typography.
 • Fix 4: Upgraded MessageBubble in MessagesScreen to Apple iMessage style (continuous squircle curves, emerald sender bubble, light slate recipient bubble).
 • Fix 5: Locked theme default to Apple Light palette in Theme.kt to eliminate system dark-mode contrast clashes.
+
+[FIX 19] Apple HIG Comprehensive Polish Across All Screens & Dialogs
+Date/Time: 2026-09-26 14:55:00 PKT
+• What it did: Extended Apple Human Interface Guidelines throughout the entire app to ensure 100% aesthetic consistency.
+• Chat / Messages Screen: Frosted navigation header with active green online dot, Apple capsule search bar, Inset Grouped contact cards with hairline dividers, Apple action phrase carousel, and pinned iMessage bottom bar with circular emerald send button.
+• Login Screen: Deep emerald gradient header, Apple squircle auth card, iOS segmented role selector pills, rounded squircle input fields, affirmative green account detection callout card, full-width Apple pill CTA button, and action presets.
+• Classes Screen: Resolved clip & HorizontalDivider compilation imports, perfected Inset Grouped metadata rows, and enhanced Floating Sheet modal.
+• Home Screen: Converted role switch dialog and notifications bottom sheet to Apple squircle white containers, eliminating dark-on-dark contrast bugs on system dark mode devices.
+• Visual Mockups: Generated high-fidelity visual mockups for Classes Sheet, Home Screen, Login Screen, and Chat Screen.
 ================================================================================
+

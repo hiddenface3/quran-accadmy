@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -173,25 +176,25 @@ fun MessagesScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(Color(0xFFFAF9F5))
+                .background(Color(0xFFF8FAFC))
                 .testTag("chat_contacts_screen")
         ) {
-            // Header
+            // Apple Header
             Surface(
                 color = Color.White,
-                shadowElevation = 2.dp,
+                shadowElevation = 1.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
                     Text(
                         text = when (currentUser.role) {
                             UserRole.TEACHER -> "My Students"
                             UserRole.STUDENT -> "My Quran Teachers"
                             UserRole.ADMIN -> "Academy Messages"
                         },
-                        fontSize = 20.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF191C1B)
+                        color = Color(0xFF0F172A)
                     )
                     Text(
                         text = when (currentUser.role) {
@@ -200,12 +203,12 @@ fun MessagesScreen(
                             UserRole.ADMIN -> "Connect directly with teachers and students"
                         },
                         fontSize = 12.sp,
-                        color = Color(0xFF616161)
+                        color = Color(0xFF64748B)
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Search Input
+                    // Apple Capsule Search Input
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
@@ -216,48 +219,83 @@ fun MessagesScreen(
                                     UserRole.STUDENT -> "Search teachers..."
                                     UserRole.ADMIN -> "Search contacts..."
                                 },
-                                fontSize = 13.sp
+                                fontSize = 13.sp,
+                                color = Color(0xFF94A3B8)
                             )
                         },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search",
-                                tint = Color.Gray,
+                                tint = Color(0xFF94A3B8),
                                 modifier = Modifier.size(18.dp)
                             )
                         },
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(22.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(48.dp)
                             .testTag("search_contacts_field"),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = EmeraldPrimary,
-                            unfocusedBorderColor = Color(0xFFE0E0E0),
-                            focusedContainerColor = Color(0xFFFBFBF8),
-                            unfocusedContainerColor = Color(0xFFFBFBF8)
+                            focusedBorderColor = Color(0xFF059669),
+                            unfocusedBorderColor = Color(0xFFE2E8F0),
+                            focusedContainerColor = Color(0xFFF1F5F9),
+                            unfocusedContainerColor = Color(0xFFF1F5F9)
                         ),
                         singleLine = true
                     )
 
                     if (currentUser.role == UserRole.ADMIN) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TabRow(
-                            selectedTabIndex = adminTabSelection,
-                            containerColor = Color.White,
-                            contentColor = EmeraldPrimary
+                        Spacer(modifier = Modifier.height(10.dp))
+                        // Apple Segmented Pill Selector for Admin
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFFF1F5F9),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
                         ) {
-                            Tab(
-                                selected = adminTabSelection == 0,
-                                onClick = { adminTabSelection = 0 },
-                                text = { Text("Teachers (${teachers.size})") }
-                            )
-                            Tab(
-                                selected = adminTabSelection == 1,
-                                onClick = { adminTabSelection = 1 },
-                                text = { Text("Students (${students.size})") }
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(3.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(11.dp))
+                                        .background(if (adminTabSelection == 0) Color.White else Color.Transparent)
+                                        .then(if (adminTabSelection == 0) Modifier.shadow(2.dp, RoundedCornerShape(11.dp)) else Modifier)
+                                        .clickable { adminTabSelection = 0 },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Teachers (${teachers.size})",
+                                        fontSize = 12.sp,
+                                        fontWeight = if (adminTabSelection == 0) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (adminTabSelection == 0) Color(0xFF059669) else Color(0xFF64748B)
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(11.dp))
+                                        .background(if (adminTabSelection == 1) Color.White else Color.Transparent)
+                                        .then(if (adminTabSelection == 1) Modifier.shadow(2.dp, RoundedCornerShape(11.dp)) else Modifier)
+                                        .clickable { adminTabSelection = 1 },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Students (${students.size})",
+                                        fontSize = 12.sp,
+                                        fontWeight = if (adminTabSelection == 1) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (adminTabSelection == 1) Color(0xFF059669) else Color(0xFF64748B)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -280,7 +318,7 @@ fun MessagesScreen(
                         ) {
                             Text(
                                 text = "No contacts found.",
-                                color = Color.Gray,
+                                color = Color(0xFF94A3B8),
                                 fontSize = 14.sp
                             )
                         }
@@ -304,15 +342,17 @@ fun MessagesScreen(
                             isFromContact || isToContact || idMatch
                         }
 
+                        // Apple Inset Grouped Card
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 5.dp)
+                                .padding(vertical = 4.dp)
                                 .clickable { selectedContact = contact }
                                 .testTag("contact_item_${contact.id}"),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -324,25 +364,26 @@ fun MessagesScreen(
                                 Box {
                                     Surface(
                                         shape = CircleShape,
-                                        color = if (contact.role == UserRole.TEACHER) EmeraldPrimary else Color(0xFF1976D2),
-                                        modifier = Modifier.size(50.dp)
+                                        color = if (contact.role == UserRole.TEACHER) Color(0xFF059669) else Color(0xFF2563EB),
+                                        modifier = Modifier.size(48.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Text(
                                                 text = contact.avatarInitial,
                                                 color = Color.White,
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 20.sp
+                                                fontSize = 19.sp
                                             )
                                         }
                                     }
 
-                                    // Online green indicator
+                                    // Online green indicator dot with white border ring
                                     Surface(
                                         shape = CircleShape,
-                                        color = Color(0xFF4CAF50),
+                                        color = Color(0xFF10B981),
+                                        border = androidx.compose.foundation.BorderStroke(2.dp, Color.White),
                                         modifier = Modifier
-                                            .size(12.dp)
+                                            .size(13.dp)
                                             .align(Alignment.BottomEnd)
                                     ) {}
                                 }
@@ -357,16 +398,16 @@ fun MessagesScreen(
                                     ) {
                                         Text(
                                             text = contact.name,
-                                            fontWeight = FontWeight.Bold,
+                                            fontWeight = FontWeight.SemiBold,
                                             fontSize = 15.sp,
-                                            color = Color(0xFF191C1B),
+                                            color = Color(0xFF0F172A),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
                                             text = lastMsg?.timestamp ?: "Available",
                                             fontSize = 11.sp,
-                                            color = Color(0xFF888888)
+                                            color = Color(0xFF94A3B8)
                                         )
                                     }
 
@@ -375,7 +416,7 @@ fun MessagesScreen(
                                     Text(
                                         text = contact.subtitle,
                                         fontSize = 12.sp,
-                                        color = EmeraldPrimary,
+                                        color = Color(0xFF059669),
                                         fontWeight = FontWeight.Medium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -386,7 +427,7 @@ fun MessagesScreen(
                                     Text(
                                         text = lastMsg?.text ?: "Tap to start conversation",
                                         fontSize = 12.sp,
-                                        color = Color(0xFF616161),
+                                        color = Color(0xFF64748B),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -397,8 +438,8 @@ fun MessagesScreen(
                                 Icon(
                                     imageVector = Icons.Default.ChevronRight,
                                     contentDescription = "Open Chat",
-                                    tint = Color(0xFFB0BEC5),
-                                    modifier = Modifier.size(20.dp)
+                                    tint = Color(0xFFCBD5E1),
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
@@ -440,45 +481,63 @@ fun MessagesScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(Color(0xFFFAF9F5))
+                .background(Color(0xFFF8FAFC))
                 .testTag("chat_conversation_screen")
         ) {
-            // Chat Top Bar with Back Button to return to contact list
+            // Apple Chat Top Bar
             Surface(
                 color = Color.White,
-                shadowElevation = 3.dp,
+                shadowElevation = 1.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
                         onClick = { selectedContact = null },
-                        modifier = Modifier.testTag("back_to_contacts_button")
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0xFFF1F5F9), CircleShape)
+                            .testTag("back_to_contacts_button")
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back to contacts",
-                            tint = Color(0xFF191C1B)
+                            tint = Color(0xFF0F172A),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
-                    Surface(
-                        shape = CircleShape,
-                        color = if (contact.role == UserRole.TEACHER) EmeraldPrimary else Color(0xFF1976D2),
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = contact.avatarInitial,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Box {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (contact.role == UserRole.TEACHER) Color(0xFF059669) else Color(0xFF2563EB),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = contact.avatarInitial,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                            }
                         }
+
+                        // Online green dot
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF10B981),
+                            border = androidx.compose.foundation.BorderStroke(2.dp, Color.White),
+                            modifier = Modifier
+                                .size(11.dp)
+                                .align(Alignment.BottomEnd)
+                        ) {}
                     }
 
                     Spacer(modifier = Modifier.width(10.dp))
@@ -487,23 +546,23 @@ fun MessagesScreen(
                         Text(
                             text = contact.name,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF191C1B),
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF0F172A),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.FiberManualRecord,
-                                contentDescription = null,
-                                tint = Color(0xFF2E7D32),
-                                modifier = Modifier.size(8.dp)
-                            )
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFF10B981),
+                                modifier = Modifier.size(6.dp)
+                            ) {}
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Online • ${contact.subtitle}",
+                                text = "Active now • ${contact.subtitle}",
                                 fontSize = 11.sp,
-                                color = Color(0xFF616161),
+                                color = Color(0xFF059669),
+                                fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -532,15 +591,16 @@ fun MessagesScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = EmeraldPrimary.copy(alpha = 0.1f),
+                                    color = Color(0xFFECFDF5),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFA7F3D0)),
                                     modifier = Modifier.size(60.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             imageVector = Icons.Default.Person,
                                             contentDescription = null,
-                                            tint = EmeraldPrimary,
-                                            modifier = Modifier.size(30.dp)
+                                            tint = Color(0xFF059669),
+                                            modifier = Modifier.size(28.dp)
                                         )
                                     }
                                 }
@@ -548,13 +608,13 @@ fun MessagesScreen(
                                 Text(
                                     text = "Start conversation with ${contact.name}",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF333333)
+                                    fontSize = 15.sp,
+                                    color = Color(0xFF0F172A)
                                 )
                                 Text(
-                                    text = "Send a message or greeting below.",
+                                    text = "Send a direct message or greeting below.",
                                     fontSize = 12.sp,
-                                    color = Color.Gray
+                                    color = Color(0xFF64748B)
                                 )
                             }
                         }
@@ -566,7 +626,7 @@ fun MessagesScreen(
                 }
             }
 
-            // Quick Islamic Greeting Chips
+            // Quick Islamic Greeting Chips (Apple Pill Carousel)
             val quickPhrases = if (currentUser.role == UserRole.TEACHER) {
                 listOf(
                     "Assalamu Alaikum",
@@ -594,8 +654,9 @@ fun MessagesScreen(
             ) {
                 items(quickPhrases) { phrase ->
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = Color(0xFFF1EFEA),
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color(0xFFF1F5F9),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier.clickable {
                             viewModel.sendMessage(phrase, contact.id, contact.name)
                         }
@@ -603,18 +664,18 @@ fun MessagesScreen(
                         Text(
                             text = phrase,
                             fontSize = 12.sp,
-                            color = Color(0xFF0E5B44),
+                            color = Color(0xFF065F46),
                             fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                         )
                     }
                 }
             }
 
-            // Message Input Field
+            // Apple Pinned Message Input Bar
             Surface(
                 color = Color.White,
-                shadowElevation = 8.dp,
+                shadowElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -629,7 +690,8 @@ fun MessagesScreen(
                         placeholder = {
                             Text(
                                 text = "Message ${contact.name.split(" ").first()}...",
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
+                                color = Color(0xFF94A3B8)
                             )
                         },
                         modifier = Modifier
@@ -637,34 +699,37 @@ fun MessagesScreen(
                             .testTag("message_input_field"),
                         shape = RoundedCornerShape(24.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = EmeraldPrimary,
-                            unfocusedBorderColor = Color(0xFFE0E0E0),
-                            focusedContainerColor = Color(0xFFFAF9F5),
-                            unfocusedContainerColor = Color(0xFFFAF9F5)
+                            focusedBorderColor = Color(0xFF059669),
+                            unfocusedBorderColor = Color(0xFFE2E8F0),
+                            focusedContainerColor = Color(0xFFF8FAFC),
+                            unfocusedContainerColor = Color(0xFFF8FAFC)
                         ),
                         maxLines = 3
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    IconButton(
-                        onClick = {
-                            if (inputText.isNotBlank()) {
-                                viewModel.sendMessage(inputText, contact.id, contact.name)
-                                inputText = ""
-                            }
-                        },
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF059669),
                         modifier = Modifier
-                            .size(48.dp)
-                            .background(EmeraldPrimary, CircleShape)
+                            .size(46.dp)
+                            .clickable {
+                                if (inputText.isNotBlank()) {
+                                    viewModel.sendMessage(inputText, contact.id, contact.name)
+                                    inputText = ""
+                                }
+                            }
                             .testTag("send_message_button")
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "Send",
+                                tint = Color.White,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
                     }
                 }
             }

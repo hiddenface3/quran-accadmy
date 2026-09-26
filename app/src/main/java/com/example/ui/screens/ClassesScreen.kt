@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Book
@@ -30,6 +31,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -289,13 +291,13 @@ fun ClassesScreen(
                     ) {
                         Column(modifier = Modifier.padding(vertical = 4.dp)) {
                             DetailRow(icon = Icons.Default.Person, label = "Student", value = qClass.studentName)
-                            Divider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                            HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
                             DetailRow(icon = Icons.Default.Person, label = "Teacher", value = qClass.teacherName)
-                            Divider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                            HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
                             DetailRow(icon = Icons.Default.DateRange, label = "Schedule", value = "${qClass.date} at ${qClass.startTime}")
-                            Divider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                            HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
                             DetailRow(icon = Icons.Default.Schedule, label = "Duration", value = "${qClass.durationMinutes} minutes")
-                            Divider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                            HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
                             DetailRow(icon = Icons.Default.Book, label = "Curriculum Topic", value = qClass.surahTopic)
                         }
                     }

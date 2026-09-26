@@ -311,64 +311,73 @@ fun LoginScreen(
                         )
                     )
 
-                    // Account Already Exists Banner
+                    // Account Already Exists Banner (Apple HIG Callout Card)
                     if (detectedExistingAccount != null) {
                         Surface(
-                            color = Color(0xFFE8F5E9),
-                            shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF81C784)),
+                            color = Color(0xFFECFDF5),
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFA7F3D0)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 10.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = Color(0xFF2E7D32),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFF059669),
+                                    modifier = Modifier.size(22.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
                                         text = "Account already exists!",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF2E7D32)
+                                        color = Color(0xFF065F46)
                                     )
                                     Text(
                                         text = "Identity: ${detectedExistingAccount.second} (${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }}). Tap below to log in.",
                                         fontSize = 11.sp,
-                                        color = Color(0xFF1B5E20)
+                                        color = Color(0xFF047857)
                                     )
                                 }
                             }
                         }
                     } else if (matchingAdmin != null || trimmedEmail.contains("admin")) {
                         Surface(
-                            color = GoldSecondary.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFFFBEB),
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE68A)),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 8.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Authorized Academy Director Email detected", fontSize = 11.sp, color = EmeraldPrimary, fontWeight = FontWeight.SemiBold)
+                                Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Authorized Academy Director Email detected", fontSize = 11.sp, color = Color(0xFF92400E), fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Primary Button: Sign In & Navigate to Respected Screen
+                    // Primary Button: Apple Pill Sign In
                     Button(
                         onClick = {
                             val finalRole = activeRole
@@ -388,10 +397,10 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(52.dp)
                             .testTag("sign_in_and_sync_button"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669))
                     ) {
                         Text(
                             text = if (detectedExistingAccount != null) {
@@ -405,9 +414,9 @@ fun LoginScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Secondary: Continue with Google
+                    // Secondary: Continue with Google (Apple Inset Style)
                     OutlinedButton(
                         onClick = {
                             viewModel.signInWithGoogle(
@@ -423,7 +432,9 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(48.dp)
                             .testTag("continue_with_google_button"),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -432,10 +443,10 @@ fun LoginScreen(
                             Surface(
                                 shape = CircleShape,
                                 color = Color(0xFF4285F4),
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(20.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text("G", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("G", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }
                             }
                             Spacer(modifier = Modifier.width(10.dp))
@@ -443,7 +454,7 @@ fun LoginScreen(
                                 text = "Continue with Google Account",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF333333)
+                                color = Color(0xFF1E293B)
                             )
                         }
                     }
