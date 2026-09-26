@@ -183,9 +183,10 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("auth_card"),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -197,13 +198,13 @@ fun LoginScreen(
                         text = "Device Setup & Sign In",
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF191C1B)
+                        color = Color(0xFF0F172A)
                     )
 
                     Text(
                         text = "Sign in on this phone as Student, Teacher, or Admin.",
                         fontSize = 12.sp,
-                        color = Color(0xFF757575),
+                        color = Color(0xFF64748B),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
                     )
@@ -213,7 +214,7 @@ fun LoginScreen(
                         text = "CHOOSE THIS DEVICE ROLE:",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF555555),
+                        color = Color(0xFF64748B),
                         modifier = Modifier.align(Alignment.Start)
                     )
 
@@ -263,13 +264,19 @@ fun LoginScreen(
                             )
                         },
                         leadingIcon = {
-                            Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = EmeraldPrimary)
+                            Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = Color(0xFF059669))
                         },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("user_name_input"),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF059669),
+                            unfocusedBorderColor = Color(0xFFE2E8F0),
+                            focusedContainerColor = Color(0xFFF8FAFC),
+                            unfocusedContainerColor = Color(0xFFF8FAFC)
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -289,13 +296,19 @@ fun LoginScreen(
                             )
                         },
                         leadingIcon = {
-                            Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = EmeraldPrimary)
+                            Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = Color(0xFF059669))
                         },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("user_email_input"),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF059669),
+                            unfocusedBorderColor = Color(0xFFE2E8F0),
+                            focusedContainerColor = Color(0xFFF8FAFC),
+                            unfocusedContainerColor = Color(0xFFF8FAFC)
+                        )
                     )
 
                     // Account Already Exists Banner
@@ -515,9 +528,9 @@ private fun RoleSelectionTab(
     Surface(
         onClick = onClick,
         modifier = modifier.height(58.dp),
-        shape = RoundedCornerShape(10.dp),
-        color = if (isSelected) EmeraldPrimary else Color(0xFFF5F5F5),
-        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) Color(0xFF059669) else Color(0xFFF1F5F9),
+        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
         Column(
             modifier = Modifier
@@ -530,12 +543,12 @@ private fun RoleSelectionTab(
                 text = title,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.White else Color(0xFF333333)
+                color = if (isSelected) Color.White else Color(0xFF1E293B)
             )
             Text(
                 text = subtitle,
                 fontSize = 10.sp,
-                color = if (isSelected) GoldSecondary else Color(0xFF888888)
+                color = if (isSelected) Color(0xFFD1FAE5) else Color(0xFF64748B)
             )
         }
     }
@@ -551,13 +564,14 @@ private fun PresetButton(
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.height(44.dp),
-        shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldPrimary.copy(alpha = 0.4f)),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF8FAFC)),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = EmeraldPrimary)
-            Text(text = sub, fontSize = 9.sp, color = Color(0xFF757575))
+            Text(text = title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+            Text(text = sub, fontSize = 9.sp, color = Color(0xFF64748B))
         }
     }
 }

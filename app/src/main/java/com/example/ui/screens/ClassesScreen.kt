@@ -131,25 +131,35 @@ fun ClassesScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    TabRow(
-                        selectedTabIndex = selectedTabIndex,
-                        containerColor = Color.Transparent,
-                        contentColor = EmeraldPrimary
+                    // Apple iOS-Style Segmented Pill Control
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF1F5F9), RoundedCornerShape(24.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         tabs.forEachIndexed { index, title ->
-                            Tab(
-                                selected = selectedTabIndex == index,
-                                onClick = { selectedTabIndex = index },
-                                text = {
-                                    Text(
-                                        text = title,
-                                        fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                                        fontSize = 13.sp
-                                    )
-                                }
-                            )
+                            val isSelected = selectedTabIndex == index
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(if (isSelected) Color.White else Color.Transparent)
+                                    .clickable { selectedTabIndex = index }
+                                    .padding(vertical = 9.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = title,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color(0xFF0F172A) else Color(0xFF64748B)
+                                )
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
 
@@ -207,50 +217,117 @@ fun ClassesScreen(
         }
     }
 
-    // Class Details Dialog
+    // Class Details Apple Floating Sheet Dialog
     selectedClassForDetails?.let { qClass ->
         AlertDialog(
             onDismissRequest = { selectedClassForDetails = null },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = Color.White,
+            tonalElevation = 8.dp,
             title = {
-                Text(
-                    text = qClass.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color(0xFF191C1B)
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // iOS Drag Handle Indicator
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp, 5.dp)
+                            .background(Color(0xFFCBD5E1), RoundedCornerShape(3.dp))
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = qClass.title,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 19.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFFD1FAE5), RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 10.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = if (qClass.status == ClassStatus.LIVE_NOW) "• LIVE NOW" else "Scheduled",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF047857)
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = { selectedClassForDetails = null },
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(Color(0xFFF1F5F9), androidx.compose.foundation.shape.CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color(0xFF64748B),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
             },
             text = {
-                Column {
-                    DetailRow(icon = Icons.Default.Person, label = "Student", value = qClass.studentName)
-                    DetailRow(icon = Icons.Default.Person, label = "Teacher", value = qClass.teacherName)
-                    DetailRow(icon = Icons.Default.DateRange, label = "Schedule", value = "${qClass.date} at ${qClass.startTime}")
-                    DetailRow(icon = Icons.Default.Schedule, label = "Duration", value = "${qClass.durationMinutes} minutes")
-                    DetailRow(icon = Icons.Default.Book, label = "Curriculum Topic", value = qClass.surahTopic)
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Apple Inset Grouped Table
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                            DetailRow(icon = Icons.Default.Person, label = "Student", value = qClass.studentName)
+                            Divider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                            DetailRow(icon = Icons.Default.Person, label = "Teacher", value = qClass.teacherName)
+                            Divider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                            DetailRow(icon = Icons.Default.DateRange, label = "Schedule", value = "${qClass.date} at ${qClass.startTime}")
+                            Divider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                            DetailRow(icon = Icons.Default.Schedule, label = "Duration", value = "${qClass.durationMinutes} minutes")
+                            Divider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                            DetailRow(icon = Icons.Default.Book, label = "Curriculum Topic", value = qClass.surahTopic)
+                        }
+                    }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    Text(
-                        text = "Syllabus Notes:",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = Color(0xFF454B46)
-                    )
-                    Text(
-                        text = qClass.syllabusNotes,
-                        fontSize = 12.sp,
-                        color = Color(0xFF616161),
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
+                    // Syllabus Notes Card
+                    Card(
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF5)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF3E8CE)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "Syllabus Notes",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF92400E)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = qClass.syllabusNotes.ifBlank { "Live Quran recitation and Tajweed practice." },
+                                fontSize = 12.sp,
+                                color = Color(0xFF451A03),
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
 
                     if (currentUser.role == UserRole.TEACHER) {
                         Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = "Teacher Actions:",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = Color(0xFF191C1B)
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
                         Button(
                             onClick = {
                                 viewModel.initiateClassCall(qClass.id)
@@ -258,15 +335,16 @@ fun ClassesScreen(
                                 selectedClassForDetails = null
                                 onNavigateToLiveClass(qClass)
                             },
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669)),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(48.dp)
                                 .testTag("teacher_start_class_ring_button")
                         ) {
-                            Icon(imageVector = Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(imageVector = Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Start Class & Ring Student (${qClass.studentName}) • Teacher: ${qClass.teacherName}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Start Class & Ring Student (${qClass.studentName})", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     } else if (currentUser.role == UserRole.ADMIN) {
                         Spacer(modifier = Modifier.height(14.dp))
@@ -275,43 +353,39 @@ fun ClassesScreen(
                                 viewModel.deleteClass(qClass.id)
                                 selectedClassForDetails = null
                             },
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE2E2), contentColor = Color(0xFFDC2626)),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(44.dp)
                                 .testTag("admin_delete_class_from_dialog")
                         ) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFFDC2626))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Delete This Class", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Delete This Class", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFDC2626))
                         }
                     }
                 }
             },
             confirmButton = {
-                if (qClass.canJoin && currentUser.role != UserRole.ADMIN) {
+                if (qClass.canJoin && currentUser.role != UserRole.ADMIN && currentUser.role != UserRole.TEACHER) {
                     Button(
                         onClick = {
-                            if (currentUser.role == UserRole.TEACHER) {
-                                viewModel.initiateClassCall(qClass.id)
-                            }
                             selectedClassForDetails = null
                             viewModel.joinClass(qClass)
                             onNavigateToLiveClass(qClass)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669)),
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (currentUser.role == UserRole.TEACHER) "Start & Enter Class" else "Join Room")
+                        Text("Join Live Classroom", fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { selectedClassForDetails = null }) {
-                    Text("Close")
-                }
-            }
+            dismissButton = {}
         )
     }
 
@@ -324,8 +398,15 @@ fun ClassesScreen(
 
         AlertDialog(
             onDismissRequest = { showCreateClassDialog = false },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White,
             title = {
-                Text("Schedule New Quran Class", fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Schedule New Quran Class",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFF0F172A)
+                )
             },
             text = {
                 Column {
@@ -333,14 +414,16 @@ fun ClassesScreen(
                         value = newTitle,
                         onValueChange = { newTitle = it },
                         label = { Text("Class Title") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newTopic,
                         onValueChange = { newTopic = it },
                         label = { Text("Surah / Lesson Topic") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -348,13 +431,15 @@ fun ClassesScreen(
                             value = newDate,
                             onValueChange = { newDate = it },
                             label = { Text("Date") },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
                         )
                         OutlinedTextField(
                             value = newTime,
                             onValueChange = { newTime = it },
                             label = { Text("Time") },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
                 }
@@ -373,14 +458,15 @@ fun ClassesScreen(
                         )
                         showCreateClassDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669))
                 ) {
-                    Text("Schedule")
+                    Text("Schedule", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCreateClassDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = Color(0xFF64748B))
                 }
             }
         )
@@ -396,12 +482,19 @@ private fun DetailRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(horizontal = 14.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = "$label: ", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF191C1B))
-        Text(text = value, fontSize = 13.sp, color = Color(0xFF616161))
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(Color(0xFFE6F4EA), androidx.compose.foundation.shape.CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(14.dp))
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF64748B), modifier = Modifier.width(100.dp))
+        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
     }
 }

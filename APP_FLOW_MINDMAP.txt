@@ -195,4 +195,13 @@ Date/Time: 2026-09-26 13:45:00 PKT
 • What it did: Compiled all architecture, security, and VoIP improvements via GitHub Actions cloud CI (Run #36230384221).
 • Output: apk-dist/quran-academy-2026-09-26-13-45.apk (71,917,071 bytes / ~71.9 MB).
 • Features: Encrypted device storage, Supabase Realtime WebSockets, hardware echo cancellation, 3-bar signal meter, and full-screen call ringing.
+
+[FIX 18] Apple Human Interface Guidelines (HIG) Design Overhaul
+Date/Time: 2026-09-26 14:40:00 PKT
+• What it did: Transformed app aesthetics into an Apple-grade, polished, clean interface.
+• Fix 1: Replaced dark murky class details dialog with an iOS Floating Bottom Sheet Modal (pure white container, drag handle indicator, circular close button, and inset grouped metadata table).
+• Fix 2: Replaced flat Material TabRow in ClassesScreen with Apple Segmented Pill Control (capsule container holding sliding white pill segments).
+• Fix 3: Upgraded LoginScreen with 24dp rounded squircle auth cards, clean role selector capsules, and slate typography.
+• Fix 4: Upgraded MessageBubble in MessagesScreen to Apple iMessage style (continuous squircle curves, emerald sender bubble, light slate recipient bubble).
+• Fix 5: Locked theme default to Apple Light palette in Theme.kt to eliminate system dark-mode contrast clashes.
 ================================================================================

@@ -684,17 +684,17 @@ fun MessageBubble(
         if (!isMe) {
             Surface(
                 shape = CircleShape,
-                color = EmeraldPrimary.copy(alpha = 0.2f),
+                color = Color(0xFFF1F5F9),
                 modifier = Modifier
                     .size(34.dp)
                     .align(Alignment.Bottom)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = message.senderName.take(1),
+                        text = message.senderName.take(1).uppercase(),
                         fontWeight = FontWeight.Bold,
-                        color = EmeraldPrimary,
-                        fontSize = 14.sp
+                        color = Color(0xFF0F172A),
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -703,34 +703,35 @@ fun MessageBubble(
 
         Surface(
             shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isMe) 16.dp else 4.dp,
-                bottomEnd = if (isMe) 4.dp else 16.dp
+                topStart = 18.dp,
+                topEnd = 18.dp,
+                bottomStart = if (isMe) 18.dp else 4.dp,
+                bottomEnd = if (isMe) 4.dp else 18.dp
             ),
-            color = if (isMe) EmeraldPrimary else Color(0xFFF1EFEA),
-            modifier = Modifier.widthIn(max = 280.dp)
+            color = if (isMe) Color(0xFF059669) else Color(0xFFF1F5F9),
+            modifier = Modifier.widthIn(max = 290.dp)
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                 if (!isMe) {
                     Text(
                         text = message.senderName,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = EmeraldPrimary
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF059669)
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                 }
                 Text(
                     text = message.text,
                     fontSize = 14.sp,
-                    color = if (isMe) Color.White else Color(0xFF191C1B)
+                    color = if (isMe) Color.White else Color(0xFF0F172A),
+                    lineHeight = 19.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = message.timestamp,
                     fontSize = 10.sp,
-                    color = if (isMe) Color.White.copy(alpha = 0.7f) else Color(0xFF888888),
+                    color = if (isMe) Color.White.copy(alpha = 0.75f) else Color(0xFF94A3B8),
                     modifier = Modifier.align(Alignment.End)
                 )
             }
