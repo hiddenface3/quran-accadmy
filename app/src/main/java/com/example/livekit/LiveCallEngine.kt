@@ -27,6 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
@@ -490,7 +491,7 @@ object LiveCallEngine {
                 room.localParticipant.setMicrophoneEnabled(!localMicMuted)
 
                 // Collect real-time LiveKit room events
-                room.events.collect { event ->
+                room.events.collect { event: RoomEvent ->
                     when (event) {
                         is RoomEvent.Connected -> {
                             _isPeerConnected.value = true
