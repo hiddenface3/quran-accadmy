@@ -116,7 +116,9 @@ object LiveCallEngine {
                     room.localParticipant.setCameraEnabled(localCameraOn)
                     room.localParticipant.setMicrophoneEnabled(!localMicMuted)
 
-                    val localTrack = room.localParticipant.getTrack(Track.Source.CAMERA)?.track as? VideoTrack
+                    val localTrack = room.localParticipant.trackPublications.values
+                        .firstOrNull { it.source == Track.Source.CAMERA }?.track as? VideoTrack
+                        ?: room.localParticipant.trackPublications.values.mapNotNull { it.track as? VideoTrack }.firstOrNull()
                     _localVideoTrack.value = localTrack
                 } catch (camEx: Exception) {
                     Log.w(TAG, "Initial camera setup note: ${camEx.message}")
@@ -126,7 +128,9 @@ object LiveCallEngine {
                 val existingRemote = room.remoteParticipants.values.firstOrNull()
                 if (existingRemote != null) {
                     _isPeerConnected.value = true
-                    val remoteTrack = existingRemote.getTrack(Track.Source.CAMERA)?.track as? VideoTrack
+                    val remoteTrack = existingRemote.trackPublications.values
+                        .firstOrNull { it.source == Track.Source.CAMERA }?.track as? VideoTrack
+                        ?: existingRemote.trackPublications.values.mapNotNull { it.track as? VideoTrack }.firstOrNull()
                     if (remoteTrack != null) {
                         _remoteVideoTrack.value = remoteTrack
                         _remoteIsCameraOn.value = true
@@ -139,13 +143,15 @@ object LiveCallEngine {
                         is RoomEvent.Connected -> {
                             _isPeerConnected.value = true
                             _connectionMode.value = "LiveKit HD Connected"
-                            val lTrack = room.localParticipant.getTrack(Track.Source.CAMERA)?.track as? VideoTrack
+                            val lTrack = room.localParticipant.trackPublications.values
+                                .firstOrNull { it.source == Track.Source.CAMERA }?.track as? VideoTrack
+                                ?: room.localParticipant.trackPublications.values.mapNotNull { it.track as? VideoTrack }.firstOrNull()
                             if (lTrack != null) {
                                 _localVideoTrack.value = lTrack
                             }
                         }
-                        is RoomEvent.LocalTrackPublished -> {
-                            if (event.publication.source == Track.Source.CAMERA) {
+                        is RoomEvent.TrackPublished -> {
+                            if (event.participant == room.localParticipant) {
                                 val lTrack = event.publication.track as? VideoTrack
                                 if (lTrack != null) {
                                     _localVideoTrack.value = lTrack
@@ -153,8 +159,8 @@ object LiveCallEngine {
                                 }
                             }
                         }
-                        is RoomEvent.LocalTrackUnpublished -> {
-                            if (event.publication.source == Track.Source.CAMERA) {
+                        is RoomEvent.TrackUnpublished -> {
+                            if (event.participant == room.localParticipant) {
                                 _localVideoTrack.value = null
                                 Log.i(TAG, "Local camera track unpublished")
                             }
@@ -162,7 +168,9 @@ object LiveCallEngine {
                         is RoomEvent.ParticipantConnected -> {
                             _isPeerConnected.value = true
                             Log.i(TAG, "Remote participant joined: ${event.participant.identity}")
-                            val rTrack = event.participant.getTrack(Track.Source.CAMERA)?.track as? VideoTrack
+                            val rTrack = event.participant.trackPublications.values
+                                .firstOrNull { it.source == Track.Source.CAMERA }?.track as? VideoTrack
+                                ?: event.participant.trackPublications.values.mapNotNull { it.track as? VideoTrack }.firstOrNull()
                             if (rTrack != null) {
                                 _remoteVideoTrack.value = rTrack
                                 _remoteIsCameraOn.value = true
@@ -264,7 +272,6 @@ object LiveCallEngine {
         _localVideoTrack.value = null
         _remoteVideoTrack.value = null
         _isPeerConnected.value = false
-        _remoteVideoBitmap.value = null
         _connectionMode.value = "Disconnected"
     }
 
@@ -284,7 +291,9 @@ object LiveCallEngine {
         engineScope.launch {
             try {
                 liveKitRoom?.localParticipant?.setCameraEnabled(cameraOn)
-                val track = liveKitRoom?.localParticipant?.getTrack(Track.Source.CAMERA)?.track as? VideoTrack
+                val track = liveKitRoom?.localParticipant?.trackPublications?.values
+                    ?.firstOrNull { it.source == Track.Source.CAMERA }?.track as? VideoTrack
+                    ?: liveKitRoom?.localParticipant?.trackPublications?.values?.mapNotNull { it.track as? VideoTrack }?.firstOrNull()
                 _localVideoTrack.value = if (cameraOn) track else null
             } catch (e: Exception) {
                 Log.w(TAG, "Camera toggle error: ${e.message}")
