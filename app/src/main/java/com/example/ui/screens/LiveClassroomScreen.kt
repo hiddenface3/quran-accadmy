@@ -2,14 +2,11 @@ package com.example.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
+import io.livekit.android.renderer.TextureViewRenderer
+import io.livekit.android.room.Room
+import io.livekit.android.room.track.VideoTrack
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -87,7 +84,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -132,7 +128,10 @@ fun LiveClassroomScreen(
     val selectedVerseIndex by viewModel.selectedQuranVerseIndex.collectAsStateWithLifecycle()
     val isInClassChatOpen by viewModel.isInClassChatOpen.collectAsStateWithLifecycle()
 
-    val remoteVideoBitmap by viewModel.remoteVideoBitmap.collectAsStateWithLifecycle()
+    val localVideoTrack by viewModel.localVideoTrack.collectAsStateWithLifecycle()
+    val remoteVideoTrack by viewModel.remoteVideoTrack.collectAsStateWithLifecycle()
+    val liveKitRoom = viewModel.currentLiveKitRoom
+
     val remoteIsCameraOn by viewModel.remoteIsCameraOn.collectAsStateWithLifecycle()
     val remoteIsMicMuted by viewModel.remoteIsMicMuted.collectAsStateWithLifecycle()
     val remoteIsSpeaking by viewModel.remoteIsSpeaking.collectAsStateWithLifecycle()
@@ -173,19 +172,6 @@ fun LiveClassroomScreen(
                 Manifest.permission.RECORD_AUDIO
             )
         )
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            try {
-                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-                cameraProviderFuture.addListener({
-                    try {
-                        cameraProviderFuture.get().unbindAll()
-                    } catch (_: Exception) {}
-                }, ContextCompat.getMainExecutor(context))
-            } catch (_: Exception) {}
-        }
     }
 
     val minutes = callDuration / 60
@@ -432,7 +418,8 @@ fun LiveClassroomScreen(
                             participantName = remoteName,
                             participantTitle = remoteTitle,
                             participantRole = remoteRole,
-                            remoteBitmap = remoteVideoBitmap,
+                            room = liveKitRoom,
+                            videoTrack = remoteVideoTrack,
                             isRemoteCameraOn = remoteIsCameraOn,
                             isRemoteMicMuted = remoteIsMicMuted,
                             isRemoteSpeaking = remoteIsSpeaking,
@@ -449,7 +436,8 @@ fun LiveClassroomScreen(
                             isCameraOn = isCameraOn,
                             isMicMuted = isMicMuted,
                             localAudioLevel = localAudioLevel,
-                            onFrameCaptured = { bmp -> viewModel.onLocalCameraFrame(bmp) },
+                            room = liveKitRoom,
+                            videoTrack = localVideoTrack,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -459,7 +447,9 @@ fun LiveClassroomScreen(
                         showRemoteInPip = !showRemoteInMain,
                         remoteName = remoteName,
                         remoteRole = remoteRole,
-                        remoteBitmap = remoteVideoBitmap,
+                        room = liveKitRoom,
+                        localVideoTrack = localVideoTrack,
+                        remoteVideoTrack = remoteVideoTrack,
                         isRemoteCameraOn = remoteIsCameraOn,
                         isRemoteMicMuted = remoteIsMicMuted,
                         localName = localName,
@@ -468,7 +458,6 @@ fun LiveClassroomScreen(
                         isCameraOn = isCameraOn,
                         isMicMuted = isMicMuted,
                         onSwap = { isViewSwapped = !isViewSwapped },
-                        onFrameCaptured = { bmp -> viewModel.onLocalCameraFrame(bmp) },
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(16.dp)
@@ -573,12 +562,61 @@ fun LiveClassroomScreen(
     }
 }
 
+/**
+ * High-performance hardware-accelerated LiveKit WebRTC video renderer for Jetpack Compose.
+ * Connects directly to WebRTC hardware decoder and renders onto TextureView GPU surface.
+ */
+@Composable
+fun LiveKitVideoRendererView(
+    room: Room?,
+    videoTrack: VideoTrack?,
+    modifier: Modifier = Modifier,
+    mirror: Boolean = false
+) {
+    var boundTrack by remember { mutableStateOf<VideoTrack?>(null) }
+
+    AndroidView(
+        factory = { ctx ->
+            TextureViewRenderer(ctx).apply {
+                try {
+                    room?.initVideoRenderer(this)
+                    setMirror(mirror)
+                    setEnableHardwareScaler(true)
+                } catch (e: Exception) {
+                    android.util.Log.w("LiveKitRenderer", "init error: ${e.message}")
+                }
+            }
+        },
+        update = { renderer ->
+            try {
+                renderer.setMirror(mirror)
+                if (boundTrack != videoTrack) {
+                    boundTrack?.removeRenderer(renderer)
+                    boundTrack = videoTrack
+                    videoTrack?.addRenderer(renderer)
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("LiveKitRenderer", "update error: ${e.message}")
+            }
+        },
+        onRelease = { renderer ->
+            try {
+                boundTrack?.removeRenderer(renderer)
+                boundTrack = null
+                renderer.release()
+            } catch (_: Exception) {}
+        },
+        modifier = modifier
+    )
+}
+
 @Composable
 private fun RemoteLiveFeedTile(
     participantName: String,
     participantTitle: String,
     participantRole: String,
-    remoteBitmap: Bitmap?,
+    room: Room?,
+    videoTrack: VideoTrack?,
     isRemoteCameraOn: Boolean,
     isRemoteMicMuted: Boolean,
     isRemoteSpeaking: Boolean,
@@ -600,12 +638,12 @@ private fun RemoteLiveFeedTile(
             ),
         contentAlignment = Alignment.Center
     ) {
-        if (remoteBitmap != null && isRemoteCameraOn) {
-            // Live real camera feed from the other phone
-            Image(
-                bitmap = remoteBitmap.asImageBitmap(),
-                contentDescription = "Live Video Feed of $participantName",
-                contentScale = ContentScale.Crop,
+        if (videoTrack != null && isRemoteCameraOn) {
+            // Live real WebRTC hardware GPU video feed from remote peer
+            LiveKitVideoRendererView(
+                room = room,
+                videoTrack = videoTrack,
+                mirror = false,
                 modifier = Modifier.fillMaxSize()
             )
 
@@ -805,12 +843,10 @@ private fun LocalLiveFeedTile(
     isCameraOn: Boolean,
     isMicMuted: Boolean,
     localAudioLevel: Float,
-    onFrameCaptured: (Bitmap) -> Unit,
+    room: Room?,
+    videoTrack: VideoTrack?,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -818,57 +854,10 @@ private fun LocalLiveFeedTile(
         contentAlignment = Alignment.Center
     ) {
         if (hasPermission && isCameraOn) {
-            AndroidView(
-                factory = { ctx ->
-                    val previewView = PreviewView(ctx).apply {
-                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    }
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                    cameraProviderFuture.addListener({
-                        try {
-                            val cameraProvider = cameraProviderFuture.get()
-                            cameraProvider.unbindAll()
-                            if (hasPermission && isCameraOn) {
-                                val preview = Preview.Builder().build().also {
-                                    it.surfaceProvider = previewView.surfaceProvider
-                                }
-                                val imageAnalysis = ImageAnalysis.Builder()
-                                    .setTargetResolution(android.util.Size(320, 240))
-                                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                    .build()
-
-                                imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
-                                    try {
-                                        val bmp = imageProxy.toBitmap()
-                                        onFrameCaptured(bmp)
-                                    } catch (_: Exception) {
-                                    } finally {
-                                        imageProxy.close()
-                                    }
-                                }
-
-                                val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-                                cameraProvider.bindToLifecycle(
-                                    lifecycleOwner,
-                                    cameraSelector,
-                                    preview,
-                                    imageAnalysis
-                                )
-                            }
-                        } catch (_: Exception) {}
-                    }, ContextCompat.getMainExecutor(ctx))
-                    previewView
-                },
-                onRelease = { previewView ->
-                    try {
-                        val cameraProviderFuture = ProcessCameraProvider.getInstance(previewView.context)
-                        cameraProviderFuture.addListener({
-                            try {
-                                cameraProviderFuture.get().unbindAll()
-                            } catch (_: Exception) {}
-                        }, ContextCompat.getMainExecutor(previewView.context))
-                    } catch (_: Exception) {}
-                },
+            LiveKitVideoRendererView(
+                room = room,
+                videoTrack = videoTrack,
+                mirror = true,
                 modifier = Modifier.fillMaxSize()
             )
 
@@ -936,7 +925,9 @@ private fun FloatingPipTile(
     showRemoteInPip: Boolean,
     remoteName: String,
     remoteRole: String,
-    remoteBitmap: Bitmap?,
+    room: Room?,
+    localVideoTrack: VideoTrack?,
+    remoteVideoTrack: VideoTrack?,
     isRemoteCameraOn: Boolean,
     isRemoteMicMuted: Boolean,
     localName: String,
@@ -945,12 +936,8 @@ private fun FloatingPipTile(
     isCameraOn: Boolean,
     isMicMuted: Boolean,
     onSwap: () -> Unit,
-    onFrameCaptured: (Bitmap) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
     Surface(
         modifier = modifier
             .size(width = 130.dp, height = 175.dp)
@@ -970,57 +957,10 @@ private fun FloatingPipTile(
             if (!showRemoteInPip) {
                 // PiP displays Local Camera Preview
                 if (hasPermission && isCameraOn) {
-                    AndroidView(
-                        factory = { ctx ->
-                            val previewView = PreviewView(ctx).apply {
-                                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                            }
-                            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                            cameraProviderFuture.addListener({
-                                try {
-                                    val cameraProvider = cameraProviderFuture.get()
-                                    cameraProvider.unbindAll()
-                                    if (hasPermission && isCameraOn) {
-                                        val preview = Preview.Builder().build().also {
-                                            it.surfaceProvider = previewView.surfaceProvider
-                                        }
-                                        val imageAnalysis = ImageAnalysis.Builder()
-                                            .setTargetResolution(android.util.Size(320, 240))
-                                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                            .build()
-
-                                        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
-                                            try {
-                                                val bmp = imageProxy.toBitmap()
-                                                onFrameCaptured(bmp)
-                                            } catch (_: Exception) {
-                                            } finally {
-                                                imageProxy.close()
-                                            }
-                                        }
-
-                                        val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-                                        cameraProvider.bindToLifecycle(
-                                            lifecycleOwner,
-                                            cameraSelector,
-                                            preview,
-                                            imageAnalysis
-                                        )
-                                    }
-                                } catch (_: Exception) {}
-                            }, ContextCompat.getMainExecutor(ctx))
-                            previewView
-                        },
-                        onRelease = { previewView ->
-                            try {
-                                val cameraProviderFuture = ProcessCameraProvider.getInstance(previewView.context)
-                                cameraProviderFuture.addListener({
-                                    try {
-                                        cameraProviderFuture.get().unbindAll()
-                                    } catch (_: Exception) {}
-                                }, ContextCompat.getMainExecutor(previewView.context))
-                            } catch (_: Exception) {}
-                        },
+                    LiveKitVideoRendererView(
+                        room = room,
+                        videoTrack = localVideoTrack,
+                        mirror = true,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
@@ -1048,11 +988,11 @@ private fun FloatingPipTile(
                 }
             } else {
                 // PiP displays Remote Participant Video
-                if (remoteBitmap != null && isRemoteCameraOn) {
-                    Image(
-                        bitmap = remoteBitmap.asImageBitmap(),
-                        contentDescription = "Remote PiP Video",
-                        contentScale = ContentScale.Crop,
+                if (remoteVideoTrack != null && isRemoteCameraOn) {
+                    LiveKitVideoRendererView(
+                        room = room,
+                        videoTrack = remoteVideoTrack,
+                        mirror = false,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {

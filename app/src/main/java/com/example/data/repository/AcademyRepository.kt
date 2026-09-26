@@ -529,6 +529,37 @@ class AcademyRepository {
         }
     }
 
+    /**
+     * Received instant in-call chat message (<20ms) from peer via LiveKit WebRTC DataChannel
+     */
+    fun onLiveKitMessageReceived(text: String) {
+        if (text.isBlank()) return
+        val current = _currentUser.value
+        val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+        val timeString = sdf.format(Date())
+
+        val isStudent = current.role == UserRole.STUDENT
+        val incomingMsg = Message(
+            id = "msg_lk_${System.currentTimeMillis()}_${(1000..9999).random()}",
+            senderId = if (isStudent) "teacher" else "student",
+            senderName = if (isStudent) "Teacher" else "Student",
+            senderRole = if (isStudent) UserRole.TEACHER else UserRole.STUDENT,
+            receiverId = current.id,
+            receiverName = current.name,
+            text = text.trim(),
+            timestamp = timeString,
+            isRead = true,
+            isFromMe = false
+        )
+        val existing = _messages.value
+        val isDuplicate = existing.any { 
+            it.text == incomingMsg.text && !it.isFromMe && it.timestamp == incomingMsg.timestamp 
+        }
+        if (!isDuplicate) {
+            _messages.value = existing + incomingMsg
+        }
+    }
+
     fun markNotificationsAsRead() {
         _notifications.value = _notifications.value.map { it.copy(isRead = true) }
     }

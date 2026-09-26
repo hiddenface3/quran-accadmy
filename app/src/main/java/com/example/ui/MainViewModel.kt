@@ -81,6 +81,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val isInClassChatOpen = MutableStateFlow(false)
 
     // Real-Time Video & VoIP Media States from LiveCallEngine
+    val localVideoTrack: StateFlow<io.livekit.android.room.track.VideoTrack?> = LiveCallEngine.localVideoTrack
+    val remoteVideoTrack: StateFlow<io.livekit.android.room.track.VideoTrack?> = LiveCallEngine.remoteVideoTrack
+    val currentLiveKitRoom: io.livekit.android.room.Room? get() = LiveCallEngine.currentRoom
+
     val remoteVideoBitmap: StateFlow<Bitmap?> = LiveCallEngine.remoteVideoBitmap
     val remoteIsCameraOn: StateFlow<Boolean> = LiveCallEngine.remoteIsCameraOn
     val remoteIsMicMuted: StateFlow<Boolean> = LiveCallEngine.remoteIsMicMuted
@@ -106,6 +110,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             repository.updateCurrentUser(saved)
         }
         com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
+
+        // Route real-time LiveKit DataChannel messages (<20ms) into repository chat flow
+        LiveCallEngine.onDataMessageReceived = { incomingText ->
+            repository.onLiveKitMessageReceived(incomingText)
+        }
 
         viewModelScope.launch {
             incomingCallClass.collect { incoming ->
@@ -306,6 +315,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun sendMessage(text: String, receiverId: String? = null, receiverName: String? = null) {
+        if (_activeLiveClass.value != null) {
+            // Instant sub-20ms delivery to classroom participants via WebRTC DataChannel
+            LiveCallEngine.sendInCallChatMessage(text)
+        }
         repository.sendMessage(text, receiverId, receiverName)
     }
 

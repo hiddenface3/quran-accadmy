@@ -55,7 +55,6 @@ class AcademyBackendService {
 
     // Instant Realtime callbacks
     var onChatMessageReceived: ((Message) -> Unit)? = null
-    var onVideoFrameReceived: ((classId: String, role: String, base64Frame: String) -> Unit)? = null
 
     /**
      * Subscribe directly to Supabase Postgres Changes WebSocket (realtime.channel).
@@ -163,15 +162,6 @@ class AcademyBackendService {
                                         isFromMe = false
                                     )
                                     onChatMessageReceived?.invoke(chatMsg)
-                                    return
-                                }
-
-                                if (classId.startsWith("frame_")) {
-                                    // Instant real-time video frame relay
-                                    val base64Frame = roomName
-                                    if (base64Frame.isNotBlank()) {
-                                        onVideoFrameReceived?.invoke(classId, teacherName, base64Frame)
-                                    }
                                     return
                                 }
 
@@ -783,134 +773,6 @@ class AcademyBackendService {
         }
     }
 
-    /**
-     * Publish peer socket connection coordinates (IP:Port) for direct P2P streaming
-     */
-    suspend fun publishMediaSignal(classId: String, role: String, payload: String): Result<Boolean> = withContext(Dispatchers.IO) {
-        try {
-            val url = "${SupabaseConfig.projectUrl}/rest/v1/active_calls"
-            val json = JSONObject().apply {
-                put("id", "sig_${classId}_${role.lowercase()}")
-                put("class_id", "sig_${classId}")
-                put("teacher_name", role)
-                put("student_name", "SIGNAL")
-                put("room_name", payload)
-                put("is_ringing", false)
-            }
-            val body = json.toString().toRequestBody(JSON_MEDIA)
-            val request = Request.Builder()
-                .url(url)
-                .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Prefer", "resolution=merge-duplicates")
-                .post(body)
-                .build()
-            client.newCall(request).execute().use { response ->
-                Result.success(response.isSuccessful || response.code in 200..204)
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Retrieve peer socket connection coordinates (IP:Port)
-     */
-    suspend fun fetchMediaSignal(classId: String, peerRole: String): Result<String?> = withContext(Dispatchers.IO) {
-        try {
-            val url = "${SupabaseConfig.projectUrl}/rest/v1/active_calls?id=eq.sig_${classId}_${peerRole.lowercase()}&limit=1"
-            val request = Request.Builder()
-                .url(url)
-                .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
-                .get()
-                .build()
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val raw = response.body?.string() ?: "[]"
-                    val jsonArray = JSONArray(raw)
-                    if (jsonArray.length() > 0) {
-                        val obj = jsonArray.getJSONObject(0)
-                        return@withContext Result.success(obj.optString("room_name", null))
-                    }
-                }
-                Result.success(null)
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Publish live camera frame snapshot to cloud relay
-     */
-    suspend fun publishMediaFrame(
-        classId: String,
-        role: String,
-        isCameraOn: Boolean,
-        isMicMuted: Boolean,
-        base64Frame: String
-    ): Result<Boolean> = withContext(Dispatchers.IO) {
-        try {
-            val url = "${SupabaseConfig.projectUrl}/rest/v1/active_calls"
-            val statusTag = "${if (isCameraOn) "CAM_ON" else "CAM_OFF"}|${if (isMicMuted) "MIC_MUTED" else "MIC_ON"}"
-            val json = JSONObject().apply {
-                put("id", "frame_${classId}_${role.lowercase()}")
-                put("class_id", "frame_${classId}")
-                put("teacher_name", role)
-                put("student_name", statusTag)
-                put("room_name", base64Frame)
-                put("is_ringing", false)
-            }
-            val body = json.toString().toRequestBody(JSON_MEDIA)
-            val request = Request.Builder()
-                .url(url)
-                .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Prefer", "resolution=merge-duplicates")
-                .post(body)
-                .build()
-            client.newCall(request).execute().use { response ->
-                Result.success(response.isSuccessful || response.code in 200..204)
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Fetch remote live camera frame snapshot from cloud relay
-     */
-    suspend fun fetchMediaFrame(classId: String, peerRole: String): Result<Triple<Boolean, Boolean, String>?> = withContext(Dispatchers.IO) {
-        try {
-            val url = "${SupabaseConfig.projectUrl}/rest/v1/active_calls?id=eq.frame_${classId}_${peerRole.lowercase()}&limit=1"
-            val request = Request.Builder()
-                .url(url)
-                .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
-                .get()
-                .build()
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val raw = response.body?.string() ?: "[]"
-                    val jsonArray = JSONArray(raw)
-                    if (jsonArray.length() > 0) {
-                        val obj = jsonArray.getJSONObject(0)
-                        val statusTag = obj.optString("student_name", "CAM_ON|MIC_ON")
-                        val isCameraOn = statusTag.contains("CAM_ON")
-                        val isMicMuted = statusTag.contains("MIC_MUTED")
-                        val frameData = obj.optString("room_name", "")
-                        return@withContext Result.success(Triple(isCameraOn, isMicMuted, frameData))
-                    }
-                }
-                Result.success(null)
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
 }
 
 data class ActiveCallInfo(

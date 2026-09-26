@@ -20,3 +20,8 @@ Example format:
 "First, we tried to set up GitHub, but we encountered an authentication issue because GitHub was not installed. To fix this, we will install GitHub right now.
 
 📚 Teaching Part: To install GitHub, you need to run these commands..."
+
+### 3. Industry-Standard & Logical Architecture Doctrine
+- Always adopt the established, battle-tested industry standard approach for the problem domain (e.g., native WebRTC hardware surface rendering for live video, standard background push for incoming calls, standard pub/sub data channels for instant messaging).
+- Strictly forbid makeshift hacks, anti-patterns, or illogical workarounds (such as streaming base64 JPEG images over database REST endpoints, duplicate hardware camera locks, or reinventing protocols already handled by the SDK).
+- Always research and adhere to the official SDK architecture and documentation (e.g., LiveKit official Android SDK guides) to ensure optimal battery life, hardware GPU acceleration, sub-100ms latency, and production reliability.
