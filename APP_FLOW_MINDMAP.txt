@@ -213,5 +213,8 @@ Date/Time: 2026-09-26 14:55:00 PKT
 • Classes Screen: Resolved clip & HorizontalDivider compilation imports, perfected Inset Grouped metadata rows, and enhanced Floating Sheet modal.
 • Home Screen: Converted role switch dialog and notifications bottom sheet to Apple squircle white containers, eliminating dark-on-dark contrast bugs on system dark mode devices.
 • Visual Mockups: Generated high-fidelity visual mockups for Classes Sheet, Home Screen, Login Screen, and Chat Screen.
+• Output: apk-dist/quran-academy-2026-09-26-15-10-apple-hig.apk (71,933,459 bytes / ~71.9 MB).
+• Status: Successfully built via GitHub Actions CI Run #36234258781 and verified on disk.
 ================================================================================
+
 
