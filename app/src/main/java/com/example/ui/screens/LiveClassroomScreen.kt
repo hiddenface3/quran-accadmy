@@ -140,6 +140,7 @@ fun LiveClassroomScreen(
     val remoteAudioLevel by viewModel.remoteAudioLevel.collectAsStateWithLifecycle()
     val isPeerConnected by viewModel.isPeerConnected.collectAsStateWithLifecycle()
     val connectionMode by viewModel.connectionMode.collectAsStateWithLifecycle()
+    val connectionQuality by viewModel.connectionQuality.collectAsStateWithLifecycle()
     val allClasses by viewModel.classes.collectAsStateWithLifecycle()
     val classLiveState = allClasses.firstOrNull { it.id == quranClass.id }
 
@@ -313,11 +314,15 @@ fun LiveClassroomScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "LiveKit HD",
-                                        fontSize = 10.sp,
-                                        color = Color(0xFF81C784)
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "LiveKit HD",
+                                            fontSize = 10.sp,
+                                            color = Color(0xFF81C784)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        ConnectionQualityBars(connectionQuality)
+                                    }
                                 }
                             }
                         }
@@ -1941,6 +1946,44 @@ private fun ControlButton(
             text = label,
             fontSize = 10.sp,
             color = Color(0xFFB0BEC5)
+        )
+    }
+}
+
+@Composable
+fun ConnectionQualityBars(quality: String, modifier: Modifier = Modifier) {
+    val barColor = when (quality.uppercase()) {
+        "EXCELLENT" -> Color(0xFF4CAF50)
+        "GOOD" -> Color(0xFFFFB300)
+        else -> Color(0xFFE53935)
+    }
+    val activeBars = when (quality.uppercase()) {
+        "EXCELLENT" -> 3
+        "GOOD" -> 2
+        else -> 1
+    }
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(1.5.dp),
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(4.dp)
+                .background(if (activeBars >= 1) barColor else Color.White.copy(alpha = 0.3f), RoundedCornerShape(1.dp))
+        )
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(7.dp)
+                .background(if (activeBars >= 2) barColor else Color.White.copy(alpha = 0.3f), RoundedCornerShape(1.dp))
+        )
+        Box(
+            modifier = Modifier
+                .width(2.5.dp)
+                .height(10.dp)
+                .background(if (activeBars >= 3) barColor else Color.White.copy(alpha = 0.3f), RoundedCornerShape(1.dp))
         )
     }
 }

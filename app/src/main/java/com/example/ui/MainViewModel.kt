@@ -89,6 +89,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val remoteAudioLevel: StateFlow<Float> = LiveCallEngine.remoteAudioLevel
     val isPeerConnected: StateFlow<Boolean> = LiveCallEngine.isPeerConnected
     val connectionMode: StateFlow<String> = LiveCallEngine.connectionMode
+    val connectionQuality: StateFlow<String> = LiveCallEngine.connectionQuality
 
     fun onLocalCameraFrame(bitmap: Bitmap) {
         LiveCallEngine.onLocalCameraFrame(bitmap)
@@ -103,6 +104,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val saved = authManager.prefs.getSavedUser()
         if (saved != null) {
             repository.updateCurrentUser(saved)
+        }
+
+        viewModelScope.launch {
+            incomingCallClass.collect { incoming ->
+                if (incoming != null) {
+                    com.example.service.CallRingtoneService.startRinging(
+                        context = getApplication(),
+                        teacherName = incoming.teacherName,
+                        studentName = incoming.studentName,
+                        classId = incoming.id,
+                        roomName = incoming.liveKitRoomName
+                    )
+                } else {
+                    com.example.service.CallRingtoneService.stopRinging(getApplication())
+                }
+            }
         }
     }
 
@@ -339,11 +356,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun acceptIncomingCall(qClass: QuranClass) {
+        com.example.service.CallRingtoneService.stopRinging(getApplication())
         repository.dismissIncomingCall()
         joinClass(qClass)
     }
 
     fun dismissIncomingCall() {
+        com.example.service.CallRingtoneService.stopRinging(getApplication())
         repository.dismissIncomingCall()
     }
 

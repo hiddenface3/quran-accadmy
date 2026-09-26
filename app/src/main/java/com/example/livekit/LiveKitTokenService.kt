@@ -1,19 +1,30 @@
 package com.example.livekit
 
 import android.util.Base64
+import android.util.Log
 import com.example.data.backend.SupabaseConfig
 import com.example.data.model.QuranClass
 import com.example.data.model.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 class LiveKitTokenService {
+
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(4, TimeUnit.SECONDS)
+        .readTimeout(4, TimeUnit.SECONDS)
+        .build()
 
     /**
      * Secure backend verification flow:
@@ -24,9 +35,6 @@ class LiveKitTokenService {
         userProfile: UserProfile
     ): Result<LiveKitTokenResponse> = withContext(Dispatchers.IO) {
         try {
-            // Step 1: Verification check
-            delay(400) // Simulating network handshake with Academy Supabase Edge Auth
-            
             val isEligible = quranClass.canJoin || userProfile.role.name == "TEACHER" || userProfile.role.name == "ADMIN"
             if (!isEligible) {
                 return@withContext Result.failure(
@@ -34,25 +42,55 @@ class LiveKitTokenService {
                 )
             }
 
-            // Step 2: In production this calls Supabase Edge Function:
-            // POST ${SupabaseConfig.liveKitBackendAuthUrl} with Authorization: Bearer <session>
-            // For reliable offline/demo execution, we synthesize the cryptographically signed LiveKit JWT structure
             val roomName = if (quranClass.liveKitRoomName.isNotBlank()) {
                 quranClass.liveKitRoomName
             } else {
                 "room_${quranClass.id}"
             }
 
-            val token = generateSandboxLiveKitToken(
+            // Attempt 1: Call Supabase Edge Function (/functions/v1/livekit-token)
+            var token: String? = null
+            try {
+                val edgeUrl = "${SupabaseConfig.projectUrl}/functions/v1/livekit-token"
+                val reqJson = JSONObject().apply {
+                    put("room", roomName)
+                    put("identity", userProfile.id)
+                    put("name", userProfile.name)
+                    put("isTeacher", userProfile.role.name == "TEACHER" || userProfile.role.name == "ADMIN")
+                }
+                val body = reqJson.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+                val request = Request.Builder()
+                    .url(edgeUrl)
+                    .addHeader("apikey", SupabaseConfig.anonKey)
+                    .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                    .post(body)
+                    .build()
+
+                httpClient.newCall(request).execute().use { resp ->
+                    if (resp.isSuccessful) {
+                        val respBody = resp.body?.string() ?: ""
+                        val parsed = JSONObject(respBody)
+                        if (parsed.has("token")) {
+                            token = parsed.getString("token")
+                            Log.i("LiveKitTokenService", "Acquired LiveKit token from Supabase Edge Function")
+                        }
+                    }
+                }
+            } catch (edgeErr: Exception) {
+                Log.d("LiveKitTokenService", "Edge function fallback: ${edgeErr.message}")
+            }
+
+            // Attempt 2: Fallback to cryptographically signed local sandbox token
+            val finalToken = token ?: generateSandboxLiveKitToken(
                 identity = userProfile.id,
                 name = userProfile.name,
                 roomName = roomName,
-                isTeacher = (userProfile.role.name == "TEACHER")
+                isTeacher = (userProfile.role.name == "TEACHER" || userProfile.role.name == "ADMIN")
             )
 
             Result.success(
                 LiveKitTokenResponse(
-                    token = token,
+                    token = finalToken,
                     roomName = roomName,
                     serverUrl = SupabaseConfig.liveKitServerUrl,
                     identity = userProfile.id,

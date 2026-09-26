@@ -11,6 +11,8 @@ import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.NoiseSuppressor
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -80,6 +82,12 @@ object LiveCallEngine {
 
     private val _connectionMode = MutableStateFlow("Initializing...")
     val connectionMode: StateFlow<String> = _connectionMode.asStateFlow()
+
+    private val _connectionQuality = MutableStateFlow("EXCELLENT")
+    val connectionQuality: StateFlow<String> = _connectionQuality.asStateFlow()
+
+    private var echoCanceler: AcousticEchoCanceler? = null
+    private var noiseSuppressor: NoiseSuppressor? = null
 
     // Internal engine state
     private var activeClassId: String? = null
@@ -193,11 +201,20 @@ object LiveCallEngine {
         } catch (_: Exception) {}
         udpSocket = null
 
+        echoCanceler?.release()
+        echoCanceler = null
+        noiseSuppressor?.release()
+        noiseSuppressor = null
+
+        val audioManager = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        audioManager?.mode = AudioManager.MODE_NORMAL
+
         _remoteVideoBitmap.value = null
         _isPeerConnected.value = false
         _localAudioLevel.value = 0f
         _remoteAudioLevel.value = 0f
         _connectionMode.value = "Disconnected"
+        _connectionQuality.value = "EXCELLENT"
         latestLocalJpeg = null
     }
 
@@ -284,6 +301,9 @@ object LiveCallEngine {
             return
         }
 
+        val audioManager = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
+
         try {
             val minBuf = AudioRecord.getMinBufferSize(
                 SAMPLE_RATE,
@@ -297,6 +317,20 @@ object LiveCallEngine {
                 AudioFormat.ENCODING_PCM_16BIT,
                 maxOf(minBuf, AUDIO_BUFFER_SIZE * 2)
             )
+
+            // Enable Hardware Acoustic Echo Cancellation & Noise Suppression if supported
+            val sessionId = audioRecord?.audioSessionId ?: 0
+            if (sessionId != 0) {
+                if (AcousticEchoCanceler.isAvailable()) {
+                    echoCanceler = AcousticEchoCanceler.create(sessionId)?.apply { enabled = true }
+                    Log.i(TAG, "Hardware AcousticEchoCanceler enabled on session $sessionId")
+                }
+                if (NoiseSuppressor.isAvailable()) {
+                    noiseSuppressor = NoiseSuppressor.create(sessionId)?.apply { enabled = true }
+                    Log.i(TAG, "Hardware NoiseSuppressor enabled on session $sessionId")
+                }
+            }
+
             audioRecord?.startRecording()
 
             // Bind a local UDP socket on a random free port for VoIP packets
@@ -509,6 +543,18 @@ object LiveCallEngine {
                         }
                         is RoomEvent.Disconnected -> {
                             _isPeerConnected.value = false
+                            _connectionQuality.value = "LOST"
+                        }
+                        is RoomEvent.ConnectionQualityChanged -> {
+                            _connectionQuality.value = event.quality.name
+                        }
+                        is RoomEvent.Reconnecting -> {
+                            _connectionMode.value = "Reconnecting (ICE Restart)..."
+                            _connectionQuality.value = "POOR"
+                        }
+                        is RoomEvent.Reconnected -> {
+                            _connectionMode.value = "LiveKit Cloud WebRTC HD"
+                            _connectionQuality.value = "EXCELLENT"
                         }
                         else -> {}
                     }
@@ -516,6 +562,22 @@ object LiveCallEngine {
             } catch (e: Exception) {
                 Log.w(TAG, "LiveKit session connection note: ${e.message}. Using LAN fallback.")
                 _connectionMode.value = "Direct LAN P2P"
+            }
+        }
+    }
+
+    fun onNetworkChanged(isConnected: Boolean) {
+        if (!isConnected) return
+        engineScope.launch {
+            try {
+                liveKitRoom?.let { room ->
+                    Log.i(TAG, "Network switch detected. Evaluating WebRTC peer connection.")
+                    if (room.state != Room.State.CONNECTED) {
+                        _connectionMode.value = "Reconnecting (ICE Restart)..."
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Network switch evaluation error: ${e.message}")
             }
         }
     }

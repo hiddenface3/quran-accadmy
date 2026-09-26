@@ -33,7 +33,45 @@ class AcademyRepository {
 
     init {
         scope.launch { syncDataNow() }
+        setupRealtimeCallSubscription()
         startPeriodicSync()
+    }
+
+    private fun setupRealtimeCallSubscription() {
+        backendService.subscribeToRealtimeActiveCalls { activeCall ->
+            val current = _currentUser.value
+            if (current.role == UserRole.STUDENT) {
+                val cleanStudent = current.name.trim().lowercase()
+                val callStudent = activeCall.studentName.trim().lowercase()
+                val isMatch = cleanStudent.isEmpty() || callStudent.isEmpty() ||
+                        callStudent == cleanStudent || callStudent.contains(cleanStudent) || cleanStudent.contains(callStudent)
+
+                if (isMatch) {
+                    if (activeCall.isRinging) {
+                        val existingClass = _classes.value.firstOrNull { it.id == activeCall.classId }
+                        val targetClass = existingClass ?: QuranClass(
+                            id = activeCall.classId,
+                            title = "Quran Reading & Tajweed Rules",
+                            teacherName = activeCall.teacherName,
+                            teacherTitle = "Certified Qari",
+                            studentName = current.name,
+                            date = "Today",
+                            startTime = "Now",
+                            durationMinutes = 45,
+                            status = ClassStatus.LIVE_NOW,
+                            description = "Live Quran Recitation Session with ${activeCall.teacherName}",
+                            liveKitRoomName = activeCall.roomName,
+                            surahTopic = "Surah Al-Mulk"
+                        )
+                        _incomingCallClass.value = targetClass
+                    } else {
+                        if (_incomingCallClass.value?.id == activeCall.classId) {
+                            _incomingCallClass.value = null
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private val _currentUser = MutableStateFlow(
@@ -195,7 +233,7 @@ class AcademyRepository {
                 } catch (e: Exception) {
                     // Ignore transient network errors
                 }
-                delay(1500)
+                delay(15000)
             }
         }
     }

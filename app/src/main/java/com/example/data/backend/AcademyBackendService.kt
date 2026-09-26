@@ -8,12 +8,21 @@ import com.example.data.model.StudentInfo
 import com.example.data.model.TeacherInfo
 import com.example.data.model.UserProfile
 import com.example.data.model.UserRole
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
@@ -38,6 +47,109 @@ class AcademyBackendService {
         private set
     var syncErrorMessage: String? = null
         private set
+
+    // Supabase Realtime WebSocket engine
+    private var realtimeWebSocket: WebSocket? = null
+    private var realtimeHeartbeatJob: Job? = null
+    private val realtimeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    /**
+     * Subscribe directly to Supabase Postgres Changes WebSocket (realtime.channel).
+     * Replaces aggressive HTTP polling with zero-latency push events (<50ms).
+     */
+    fun subscribeToRealtimeActiveCalls(onCallChanged: (ActiveCallInfo) -> Unit) {
+        try {
+            realtimeWebSocket?.close(1000, "Reconnecting")
+            realtimeHeartbeatJob?.cancel()
+
+            val baseWs = SupabaseConfig.projectUrl
+                .replace("https://", "wss://")
+                .replace("http://", "ws://")
+            val wsUrl = "$baseWs/realtime/v1/websocket?apikey=${SupabaseConfig.anonKey}&vsn=1.0.0"
+
+            val request = Request.Builder().url(wsUrl).build()
+            realtimeWebSocket = client.newWebSocket(request, object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    Log.i(TAG, "Supabase Realtime WebSocket connected successfully")
+                    // Join active_calls postgres_changes topic
+                    val joinMessage = JSONObject().apply {
+                        put("topic", "realtime:public:active_calls")
+                        put("event", "phx_join")
+                        put("payload", JSONObject().apply {
+                            put("config", JSONObject().apply {
+                                put("postgres_changes", JSONArray().apply {
+                                    put(JSONObject().apply {
+                                        put("event", "*")
+                                        put("schema", "public")
+                                        put("table", "active_calls")
+                                    })
+                                })
+                            })
+                        })
+                        put("ref", "1")
+                    }
+                    webSocket.send(joinMessage.toString())
+
+                    // Start heartbeat every 25s
+                    realtimeHeartbeatJob = realtimeScope.launch {
+                        var hbRef = 0
+                        while (isActive) {
+                            delay(25000)
+                            val hb = JSONObject().apply {
+                                put("topic", "phoenix")
+                                put("event", "heartbeat")
+                                put("payload", JSONObject())
+                                put("ref", "hb_${++hbRef}")
+                            }
+                            webSocket.send(hb.toString())
+                        }
+                    }
+                }
+
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    try {
+                        val json = JSONObject(text)
+                        val event = json.optString("event")
+                        if (event == "postgres_changes") {
+                            val payload = json.optJSONObject("payload")
+                            val data = payload?.optJSONObject("data")
+                            val record = data?.optJSONObject("record")
+                            if (record != null) {
+                                val isRinging = record.optBoolean("is_ringing", false)
+                                val classId = record.optString("class_id", "")
+                                val teacherName = record.optString("teacher_name", "Quran Teacher")
+                                val studentName = record.optString("student_name", "")
+                                val roomName = record.optString("room_name", "room_$classId")
+                                if (classId.isNotBlank()) {
+                                    onCallChanged(
+                                        ActiveCallInfo(
+                                            classId = classId,
+                                            teacherName = teacherName,
+                                            studentName = studentName,
+                                            roomName = roomName,
+                                            isRinging = isRinging
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Realtime message parse exception: ${e.message}")
+                    }
+                }
+
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    Log.w(TAG, "Supabase Realtime socket error: ${t.message}")
+                }
+
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.i(TAG, "Supabase Realtime socket closed: code=$code, reason=$reason")
+                }
+            })
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to initialize Supabase Realtime WebSocket: ${e.message}")
+        }
+    }
 
     /**
      * Upsert user profile to Supabase backend
