@@ -30,10 +30,6 @@ android {
       keyAlias = "upload"
       keyPassword = System.getenv("KEY_PASSWORD")
     }
-    getByName("debug") {
-      v1SigningEnabled = true
-      v2SigningEnabled = true
-    }
   }
 
   buildTypes {
