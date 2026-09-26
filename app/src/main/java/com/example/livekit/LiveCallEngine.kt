@@ -113,6 +113,8 @@ object LiveCallEngine {
     private var serverListenJob: Job? = null
     private var signalingJob: Job? = null
     private var liveKitJob: Job? = null
+    private var cloudFrameFetchJob: Job? = null
+    private var lastFramePublishTime: Long = 0
 
     private var latestLocalJpeg: ByteArray? = null
     private var lastPeerIp: String? = null
@@ -138,7 +140,7 @@ object LiveCallEngine {
         _remoteIsMicMuted.value = false
         _remoteIsSpeaking.value = false
         _isPeerConnected.value = false
-        _connectionMode.value = "Connecting LiveKit HD..."
+        _connectionMode.value = "Connecting Live Video..."
 
         Log.i(TAG, "Starting LiveCallEngine session for class $classId (isTeacher=$isTeacher)")
 
@@ -153,6 +155,9 @@ object LiveCallEngine {
 
         // 4. Start P2P Signaling & Direct LAN discovery via Supabase
         startSignaling(classId, isTeacher, backend)
+
+        // 5. Connect Realtime Cloud Video Pipeline (guaranteed cross-network video feed)
+        startCloudVideoPipeline(classId, isTeacher, backend)
     }
 
     fun stopSession() {
@@ -162,6 +167,8 @@ object LiveCallEngine {
         serverListenJob?.cancel()
         signalingJob?.cancel()
         liveKitJob?.cancel()
+        cloudFrameFetchJob?.cancel()
+        cloudFrameFetchJob = null
 
         try {
             liveKitRoom?.disconnect()
@@ -234,17 +241,24 @@ object LiveCallEngine {
      */
     fun onLocalCameraFrame(bitmap: Bitmap) {
         if (!localCameraOn) return
+        val now = System.currentTimeMillis()
+        if (now - lastFramePublishTime < 180) {
+            // Rate limit to ~5-6 FPS to prevent network congestion
+            return
+        }
+        lastFramePublishTime = now
+
         engineScope.launch {
             try {
                 val stream = ByteArrayOutputStream()
                 // Compress to compact resolution for zero-lag streaming
-                val scaled = if (bitmap.width > 480 || bitmap.height > 480) {
-                    val ratio = 360f / maxOf(bitmap.width, bitmap.height)
+                val scaled = if (bitmap.width > 320 || bitmap.height > 320) {
+                    val ratio = 260f / maxOf(bitmap.width, bitmap.height)
                     Bitmap.createScaledBitmap(bitmap, (bitmap.width * ratio).toInt(), (bitmap.height * ratio).toInt(), true)
                 } else {
                     bitmap
                 }
-                scaled.compress(Bitmap.CompressFormat.JPEG, 60, stream)
+                scaled.compress(Bitmap.CompressFormat.JPEG, 45, stream)
                 val jpegBytes = stream.toByteArray()
                 latestLocalJpeg = jpegBytes
 
@@ -256,6 +270,15 @@ object LiveCallEngine {
                         out.write(jpegBytes)
                         out.flush()
                     }
+                }
+
+                // Cloud frame relay: enables cross-network / mobile data live video
+                val cId = activeClassId
+                val b = backendService
+                if (cId != null && b != null) {
+                    val base64 = Base64.encodeToString(jpegBytes, Base64.NO_WRAP)
+                    val myRole = if (isTeacherRole) "TEACHER" else "STUDENT"
+                    b.publishMediaFrame(cId, myRole, localCameraOn, localMicMuted, base64)
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Frame encode error: ${e.message}")
@@ -499,6 +522,50 @@ object LiveCallEngine {
                 }
             } catch (e: Exception) {
                 Log.d(TAG, "Socket read closed: ${e.message}")
+            }
+        }
+    }
+
+    private fun startCloudVideoPipeline(classId: String, isTeacher: Boolean, backend: AcademyBackendService) {
+        val peerRole = if (isTeacher) "STUDENT" else "TEACHER"
+
+        // Handle instant WebSocket incoming frames (<50ms)
+        backend.onVideoFrameReceived = { incomingClassId, role, base64 ->
+            if (incomingClassId == "frame_$classId" && role.equals(peerRole, ignoreCase = true)) {
+                try {
+                    val bytes = Base64.decode(base64, Base64.DEFAULT)
+                    val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    if (bmp != null) {
+                        _remoteVideoBitmap.value = bmp
+                        _remoteIsCameraOn.value = true
+                        _isPeerConnected.value = true
+                        _connectionMode.value = "Live HD Video Feed"
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+
+        // Periodic cloud frame fetcher as fallback (every 300ms)
+        cloudFrameFetchJob = engineScope.launch {
+            while (isActive) {
+                try {
+                    val result = backend.fetchMediaFrame(classId, peerRole).getOrNull()
+                    if (result != null) {
+                        val (isCamOn, isMicMut, base64) = result
+                        _remoteIsCameraOn.value = isCamOn
+                        _remoteIsMicMuted.value = isMicMut
+                        if (base64.isNotBlank()) {
+                            val bytes = Base64.decode(base64, Base64.DEFAULT)
+                            val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                            if (bmp != null) {
+                                _remoteVideoBitmap.value = bmp
+                                _isPeerConnected.value = true
+                                _connectionMode.value = "Live HD Video Feed"
+                            }
+                        }
+                    }
+                } catch (_: Exception) {}
+                delay(300)
             }
         }
     }

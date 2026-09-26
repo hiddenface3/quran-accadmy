@@ -38,6 +38,18 @@ class AcademyRepository {
     }
 
     private fun setupRealtimeCallSubscription() {
+        backendService.onChatMessageReceived = { incomingMsg ->
+            val current = _currentUser.value
+            val isFromMe = incomingMsg.senderId == current.id ||
+                    incomingMsg.senderName.trim().equals(current.name.trim(), ignoreCase = true)
+            val msgWithMe = incomingMsg.copy(isFromMe = isFromMe)
+
+            val existing = _messages.value
+            if (existing.none { it.id == msgWithMe.id }) {
+                _messages.value = existing + msgWithMe
+            }
+        }
+
         backendService.subscribeToRealtimeActiveCalls { activeCall ->
             val current = _currentUser.value
             if (current.role == UserRole.STUDENT) {
@@ -233,7 +245,7 @@ class AcademyRepository {
                 } catch (e: Exception) {
                     // Ignore transient network errors
                 }
-                delay(15000)
+                delay(3000)
             }
         }
     }

@@ -53,6 +53,10 @@ class AcademyBackendService {
     private var realtimeHeartbeatJob: Job? = null
     private val realtimeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // Instant Realtime callbacks
+    var onChatMessageReceived: ((Message) -> Unit)? = null
+    var onVideoFrameReceived: ((classId: String, role: String, base64Frame: String) -> Unit)? = null
+
     /**
      * Subscribe directly to Supabase Postgres Changes WebSocket (realtime.channel).
      * Replaces aggressive HTTP polling with zero-latency push events (<50ms).
@@ -120,6 +124,57 @@ class AcademyBackendService {
                                 val teacherName = record.optString("teacher_name", "Quran Teacher")
                                 val studentName = record.optString("student_name", "")
                                 val roomName = record.optString("room_name", "room_$classId")
+
+                                if (classId == "chat") {
+                                    // Parse instant real-time chat message (<50ms delivery)
+                                    val id = record.optString("id", "msg_${System.currentTimeMillis()}")
+                                    var textMsg = roomName
+                                    var senderId = ""
+                                    var senderName = teacherName
+                                    var senderRole = UserRole.STUDENT
+                                    var receiverId = ""
+                                    var receiverName = studentName
+                                    var timestamp = "Now"
+
+                                    try {
+                                        if (roomName.startsWith("{")) {
+                                            val p = JSONObject(roomName)
+                                            textMsg = p.optString("text", textMsg)
+                                            senderId = p.optString("senderId", "")
+                                            senderName = p.optString("senderName", teacherName)
+                                            val roleStr = p.optString("senderRole", "STUDENT")
+                                            senderRole = try { UserRole.valueOf(roleStr) } catch (_: Exception) { UserRole.STUDENT }
+                                            receiverId = p.optString("receiverId", "")
+                                            receiverName = p.optString("receiverName", studentName)
+                                            timestamp = p.optString("timestamp", timestamp)
+                                        }
+                                    } catch (_: Exception) {}
+
+                                    val chatMsg = Message(
+                                        id = id,
+                                        senderId = senderId,
+                                        senderName = senderName,
+                                        senderRole = senderRole,
+                                        receiverId = receiverId,
+                                        receiverName = receiverName,
+                                        text = textMsg,
+                                        timestamp = timestamp,
+                                        isRead = true,
+                                        isFromMe = false
+                                    )
+                                    onChatMessageReceived?.invoke(chatMsg)
+                                    return
+                                }
+
+                                if (classId.startsWith("frame_")) {
+                                    // Instant real-time video frame relay
+                                    val base64Frame = roomName
+                                    if (base64Frame.isNotBlank()) {
+                                        onVideoFrameReceived?.invoke(classId, teacherName, base64Frame)
+                                    }
+                                    return
+                                }
+
                                 if (classId.isNotBlank()) {
                                     onCallChanged(
                                         ActiveCallInfo(
