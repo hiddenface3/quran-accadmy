@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import io.livekit.android.LiveKit
 import io.livekit.android.room.Room
 import io.livekit.android.events.RoomEvent
+import io.livekit.android.events.collect
 import com.example.data.backend.SupabaseConfig
 import com.example.data.backend.AcademyBackendService
 import kotlinx.coroutines.CoroutineScope
@@ -27,7 +28,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
@@ -491,7 +491,7 @@ object LiveCallEngine {
                 room.localParticipant.setMicrophoneEnabled(!localMicMuted)
 
                 // Collect real-time LiveKit room events
-                room.events.collect { event: RoomEvent ->
+                room.events.collect { event ->
                     when (event) {
                         is RoomEvent.Connected -> {
                             _isPeerConnected.value = true
