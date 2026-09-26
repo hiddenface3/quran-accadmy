@@ -116,7 +116,7 @@ fun ClassesScreen(
                             )
                         }
 
-                        if (currentUser.role == UserRole.TEACHER || currentUser.role == UserRole.ADMIN) {
+                        if (currentUser.role == UserRole.ADMIN) {
                             Button(
                                 onClick = { showCreateClassDialog = true },
                                 shape = RoundedCornerShape(8.dp),
@@ -191,8 +191,8 @@ fun ClassesScreen(
             }
         }
 
-        // Floating Action Button for Teachers/Admins to add a class
-        if (currentUser.role != UserRole.STUDENT) {
+        // Floating Action Button for Admins to add a class
+        if (currentUser.role == UserRole.ADMIN) {
             FloatingActionButton(
                 onClick = { showCreateClassDialog = true },
                 containerColor = EmeraldPrimary,
@@ -221,6 +221,7 @@ fun ClassesScreen(
             },
             text = {
                 Column {
+                    DetailRow(icon = Icons.Default.Person, label = "Student", value = qClass.studentName)
                     DetailRow(icon = Icons.Default.Person, label = "Teacher", value = qClass.teacherName)
                     DetailRow(icon = Icons.Default.DateRange, label = "Schedule", value = "${qClass.date} at ${qClass.startTime}")
                     DetailRow(icon = Icons.Default.Schedule, label = "Duration", value = "${qClass.durationMinutes} minutes")
@@ -240,21 +241,6 @@ fun ClassesScreen(
                         color = Color(0xFF616161),
                         modifier = Modifier.padding(top = 2.dp)
                     )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFECEFF1),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "LiveKit Room: ${qClass.liveKitRoomName}",
-                            fontSize = 11.sp,
-                            color = Color(0xFF546E7A),
-                            modifier = Modifier.padding(8.dp)
-                        )
-                    }
 
                     if (currentUser.role == UserRole.TEACHER) {
                         Spacer(modifier = Modifier.height(14.dp))
@@ -280,7 +266,7 @@ fun ClassesScreen(
                         ) {
                             Icon(imageVector = Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Start Class & Ring Student", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Start Class & Ring Student (${qClass.studentName}) • Teacher: ${qClass.teacherName}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     } else if (currentUser.role == UserRole.ADMIN) {
                         Spacer(modifier = Modifier.height(14.dp))

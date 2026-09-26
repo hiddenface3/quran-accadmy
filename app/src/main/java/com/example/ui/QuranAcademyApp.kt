@@ -70,7 +70,15 @@ fun QuranAcademyApp(
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val messages by viewModel.messages.collectAsStateWithLifecycle()
 
-    var currentTab by remember { mutableStateOf(AcademyTab.HOME) }
+    var currentTab by remember {
+        mutableStateOf(
+            when (currentUser.role) {
+                UserRole.ADMIN -> AcademyTab.ADMIN
+                UserRole.TEACHER -> AcademyTab.CLASSES
+                UserRole.STUDENT -> AcademyTab.HOME
+            }
+        )
+    }
     val unreadMessageCount = messages.count { !it.isRead && !it.isFromMe }
 
     val visibleTabs = if (currentUser.role == UserRole.ADMIN) {
@@ -97,7 +105,13 @@ fun QuranAcademyApp(
         authState is AuthState.Unauthenticated -> {
             LoginScreen(
                 viewModel = viewModel,
-                onLoginSuccess = { currentTab = AcademyTab.HOME }
+                onLoginSuccess = { role ->
+                    currentTab = when (role) {
+                        UserRole.ADMIN -> AcademyTab.ADMIN
+                        UserRole.TEACHER -> AcademyTab.CLASSES
+                        UserRole.STUDENT -> AcademyTab.HOME
+                    }
+                }
             )
         }
 

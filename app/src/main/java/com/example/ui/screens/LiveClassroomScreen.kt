@@ -139,6 +139,16 @@ fun LiveClassroomScreen(
     val remoteAudioLevel by viewModel.remoteAudioLevel.collectAsStateWithLifecycle()
     val isPeerConnected by viewModel.isPeerConnected.collectAsStateWithLifecycle()
     val connectionMode by viewModel.connectionMode.collectAsStateWithLifecycle()
+    val allClasses by viewModel.classes.collectAsStateWithLifecycle()
+    val classLiveState = allClasses.firstOrNull { it.id == quranClass.id }
+
+    // Auto-shutdown session for student when teacher ends class
+    LaunchedEffect(classLiveState?.status) {
+        if (classLiveState != null && classLiveState.status == ClassStatus.COMPLETED && currentUser.role == UserRole.STUDENT) {
+            android.widget.Toast.makeText(context, "Teacher has ended the live Quran class session.", android.widget.Toast.LENGTH_LONG).show()
+            onLeaveClass()
+        }
+    }
 
     var showEndCallDialog by remember { mutableStateOf(false) }
     var isViewSwapped by remember { mutableStateOf(false) }

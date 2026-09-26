@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MenuBook
@@ -61,7 +60,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.auth.AuthState
-import com.example.data.backend.SupabaseConfig
 import com.example.data.model.UserRole
 import com.example.ui.MainViewModel
 import com.example.ui.theme.EmeraldPrimary
@@ -70,10 +68,12 @@ import com.example.ui.theme.GoldSecondary
 @Composable
 fun LoginScreen(
     viewModel: MainViewModel,
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (UserRole) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val students by viewModel.students.collectAsStateWithLifecycle()
+    val teachers by viewModel.teachers.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
     var inputName by remember { mutableStateOf("") }
@@ -81,8 +81,32 @@ fun LoginScreen(
     var selectedRole by remember { mutableStateOf(UserRole.STUDENT) }
     var googleSignInNote by remember { mutableStateOf<String?>(null) }
 
-    // Auto-detect admin when user types admin email
-    val isAdminEmail = inputEmail.trim().lowercase() == "swabi5072@gmail.com" || inputEmail.trim().lowercase().contains("admin")
+    val trimmedEmail = inputEmail.trim().lowercase()
+    val trimmedName = inputName.trim().lowercase()
+
+    // Auto-detect existing accounts
+    val matchingAdmin = if (trimmedEmail == "swabi5072@gmail.com" || (trimmedEmail.isNotBlank() && trimmedEmail.contains("admin")) || (trimmedName.isNotBlank() && trimmedName.contains("admin"))) {
+        "Academy Administrator"
+    } else null
+
+    val matchingTeacher = teachers.firstOrNull { t ->
+        (trimmedEmail.isNotBlank() && t.email.trim().lowercase() == trimmedEmail) ||
+        (trimmedName.isNotBlank() && t.name.trim().lowercase() == trimmedName)
+    }
+
+    val matchingStudent = students.firstOrNull { s ->
+        (trimmedEmail.isNotBlank() && s.email.trim().lowercase() == trimmedEmail) ||
+        (trimmedName.isNotBlank() && s.name.trim().lowercase() == trimmedName)
+    }
+
+    val detectedExistingAccount: Pair<UserRole, String>? = when {
+        matchingAdmin != null -> Pair(UserRole.ADMIN, matchingAdmin)
+        matchingTeacher != null -> Pair(UserRole.TEACHER, matchingTeacher.name)
+        matchingStudent != null -> Pair(UserRole.STUDENT, matchingStudent.name)
+        else -> null
+    }
+
+    val activeRole = detectedExistingAccount?.first ?: if (trimmedEmail.contains("admin")) UserRole.ADMIN else selectedRole
 
     Box(
         modifier = modifier
@@ -201,22 +225,22 @@ fun LoginScreen(
                     ) {
                         RoleSelectionTab(
                             title = "Student",
-                            subtitle = "Phone 1",
-                            isSelected = selectedRole == UserRole.STUDENT && !isAdminEmail,
+                            subtitle = if (activeRole == UserRole.STUDENT && detectedExistingAccount != null) "Detected" else "Portal",
+                            isSelected = activeRole == UserRole.STUDENT,
                             onClick = { selectedRole = UserRole.STUDENT },
                             modifier = Modifier.weight(1f)
                         )
                         RoleSelectionTab(
                             title = "Teacher",
-                            subtitle = "Phone 2",
-                            isSelected = selectedRole == UserRole.TEACHER && !isAdminEmail,
+                            subtitle = if (activeRole == UserRole.TEACHER && detectedExistingAccount != null) "Detected" else "Portal",
+                            isSelected = activeRole == UserRole.TEACHER,
                             onClick = { selectedRole = UserRole.TEACHER },
                             modifier = Modifier.weight(1f)
                         )
                         RoleSelectionTab(
                             title = "Admin",
-                            subtitle = "Phone 3",
-                            isSelected = selectedRole == UserRole.ADMIN || isAdminEmail,
+                            subtitle = if (activeRole == UserRole.ADMIN && detectedExistingAccount != null) "Detected" else "Portal",
+                            isSelected = activeRole == UserRole.ADMIN,
                             onClick = { selectedRole = UserRole.ADMIN },
                             modifier = Modifier.weight(1f)
                         )
@@ -231,7 +255,7 @@ fun LoginScreen(
                         label = { Text("Your Full Name") },
                         placeholder = {
                             Text(
-                                when (selectedRole) {
+                                when (activeRole) {
                                     UserRole.STUDENT -> "e.g. Zaid Ahmed"
                                     UserRole.TEACHER -> "e.g. Sheikh Abdullah"
                                     UserRole.ADMIN -> "e.g. Ustadh Ibrahim"
@@ -257,7 +281,7 @@ fun LoginScreen(
                         label = { Text("Gmail or Academy Email") },
                         placeholder = {
                             Text(
-                                when (selectedRole) {
+                                when (activeRole) {
                                     UserRole.ADMIN -> "swabi5072@gmail.com"
                                     UserRole.TEACHER -> "teacher@gmail.com"
                                     UserRole.STUDENT -> "student@gmail.com"
@@ -274,7 +298,43 @@ fun LoginScreen(
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    if (isAdminEmail) {
+                    // Account Already Exists Banner
+                    if (detectedExistingAccount != null) {
+                        Surface(
+                            color = Color(0xFFE8F5E9),
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF81C784)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "Account already exists!",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF2E7D32)
+                                    )
+                                    Text(
+                                        text = "Identity: ${detectedExistingAccount.second} (${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }}). Tap below to log in.",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF1B5E20)
+                                    )
+                                }
+                            }
+                        }
+                    } else if (matchingAdmin != null || trimmedEmail.contains("admin")) {
                         Surface(
                             color = GoldSecondary.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(8.dp),
@@ -295,23 +355,23 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Primary Button: Sign In & Save to Backend
+                    // Primary Button: Sign In & Navigate to Respected Screen
                     Button(
                         onClick = {
-                            val finalRole = if (isAdminEmail) UserRole.ADMIN else selectedRole
+                            val finalRole = activeRole
                             val finalEmail = if (inputEmail.isNotBlank()) inputEmail.trim() else when (finalRole) {
-                                UserRole.STUDENT -> "student.quran@gmail.com"
-                                UserRole.TEACHER -> "teacher.abdullah@gmail.com"
+                                UserRole.STUDENT -> matchingStudent?.email ?: "student.quran@gmail.com"
+                                UserRole.TEACHER -> matchingTeacher?.email ?: "teacher.abdullah@gmail.com"
                                 UserRole.ADMIN -> "swabi5072@gmail.com"
                             }
                             val finalName = if (inputName.isNotBlank()) inputName.trim() else when (finalRole) {
-                                UserRole.STUDENT -> "Zaid Ahmed"
-                                UserRole.TEACHER -> "Sheikh Abdullah Al-Mansoor"
+                                UserRole.STUDENT -> matchingStudent?.name ?: "Zaid Ahmed"
+                                UserRole.TEACHER -> matchingTeacher?.name ?: "Sheikh Abdullah Al-Mansoor"
                                 UserRole.ADMIN -> "Ustadh Ibrahim (Director)"
                             }
 
                             viewModel.signInWithEmailAndRole(finalName, finalEmail, finalRole)
-                            onLoginSuccess()
+                            onLoginSuccess(finalRole)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -321,7 +381,11 @@ fun LoginScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
                     ) {
                         Text(
-                            text = "Sign In as ${if (isAdminEmail) "Admin" else selectedRole.name.lowercase().replaceFirstChar { it.uppercase() }} & Sync",
+                            text = if (detectedExistingAccount != null) {
+                                "Log In to Existing ${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }} Account"
+                            } else {
+                                "Log In as ${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }}"
+                            },
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -335,7 +399,7 @@ fun LoginScreen(
                         onClick = {
                             viewModel.signInWithGoogle(
                                 onSuccess = {
-                                    onLoginSuccess()
+                                    onLoginSuccess(viewModel.currentUser.value.role)
                                 },
                                 onFailure = { errMsg ->
                                     googleSignInNote = "Google Play Services note: $errMsg. You can use the form above to sign in directly with your Gmail."
@@ -406,86 +470,31 @@ fun LoginScreen(
                     ) {
                         PresetButton(
                             title = "Student",
-                            sub = "Phone 1",
+                            sub = "Zaid",
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 viewModel.signInWithEmailAndRole("zaidkhan", "mytest5072@gmail.com", UserRole.STUDENT)
-                                onLoginSuccess()
+                                onLoginSuccess(UserRole.STUDENT)
                             }
                         )
                         PresetButton(
                             title = "Teacher",
-                            sub = "Phone 2",
+                            sub = "Saqib",
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 viewModel.signInWithEmailAndRole("saqib saib", "itskhan7733@gmail.com", UserRole.TEACHER)
-                                onLoginSuccess()
+                                onLoginSuccess(UserRole.TEACHER)
                             }
                         )
                         PresetButton(
                             title = "Admin",
-                            sub = "Phone 3",
+                            sub = "Director",
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 viewModel.signInWithEmailAndRole("Admin Khan", "swabi5072@gmail.com", UserRole.ADMIN)
-                                onLoginSuccess()
+                                onLoginSuccess(UserRole.ADMIN)
                             }
                         )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Automatic Multi-Phone LiveKit & Supabase Status Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.CloudDone, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Automatic Multi-Device Connection",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF191C1B)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "When you install this APK on Phone 1, Phone 2, and Phone 3, they are already configured to communicate through the same LiveKit Cloud & Supabase backend automatically.",
-                        fontSize = 12.sp,
-                        color = Color(0xFF555555),
-                        lineHeight = 17.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Surface(
-                        color = Color(0xFFF4F6F5),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Text(
-                                text = "LiveKit Server: ${SupabaseConfig.liveKitServerUrl}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF2E7D32)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Backend Sync: Active polling & real-time ring detection",
-                                fontSize = 11.sp,
-                                color = Color(0xFF616161)
-                            )
-                        }
                     }
                 }
             }

@@ -206,7 +206,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         context = getApplication(),
                         classId = quranClass.id,
                         isTeacher = isTeacher,
-                        backend = repository.backendService
+                        backend = repository.backendService,
+                        liveKitUrl = tokenResp.serverUrl,
+                        liveKitToken = tokenResp.token
                     )
                 },
                 onFailure = { error ->

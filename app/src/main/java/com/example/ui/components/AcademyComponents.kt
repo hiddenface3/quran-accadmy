@@ -340,6 +340,24 @@ fun NextClassCard(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = GoldSecondary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Student: ${quranClass.studentName}",
+                    fontSize = 14.sp,
+                    color = Color(0xFF454B46),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
                     imageVector = Icons.Default.Book,
                     contentDescription = null,
                     tint = GoldSecondary,
@@ -356,9 +374,9 @@ fun NextClassCard(
             Spacer(modifier = Modifier.height(16.dp))
 
             val buttonText = when (userRole) {
-                com.example.data.model.UserRole.TEACHER -> if (isLive) "RESUME LIVE CLASSROOM" else "START CLASS & RING STUDENT"
-                com.example.data.model.UserRole.ADMIN -> "VIEW CLASS DETAILS"
-                com.example.data.model.UserRole.STUDENT -> if (isLive) "JOIN LIVE CLASS NOW" else "ENTER CLASSROOM"
+                com.example.data.model.UserRole.TEACHER -> if (isLive) "RESUME CLASS (${quranClass.studentName})" else "START CLASS & RING: ${quranClass.studentName.uppercase()}"
+                com.example.data.model.UserRole.ADMIN -> "VIEW DETAILS (${quranClass.studentName})"
+                com.example.data.model.UserRole.STUDENT -> if (isLive) "JOIN LIVE CLASS NOW" else "ENTER CLASSROOM (${quranClass.teacherName})"
             }
 
             Button(
@@ -592,9 +610,10 @@ fun ClassListItem(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Teacher: ${quranClass.teacherName}",
+                text = "Teacher: ${quranClass.teacherName} • Student: ${quranClass.studentName}",
                 fontSize = 13.sp,
-                color = Color(0xFF616161)
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF454B46)
             )
 
             Text(

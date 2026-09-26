@@ -263,68 +263,70 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Backend & LiveKit Status
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showBackendConfigDialog = true },
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CloudDone,
-                                contentDescription = null,
-                                tint = EmeraldPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Backend Services",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF191C1B)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFE8F5E9)
+            // Backend & LiveKit Status (Admin Only)
+            if (currentUser.role == UserRole.ADMIN) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showBackendConfigDialog = true },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Active",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF2E7D32),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudDone,
+                                    contentDescription = null,
+                                    tint = EmeraldPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Backend Services",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF191C1B)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFE8F5E9)
+                            ) {
+                                Text(
+                                    text = "Active",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2E7D32),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                         }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = "• Supabase Backend: ${SupabaseConfig.projectUrl}",
+                            fontSize = 11.sp,
+                            color = Color(0xFF616161)
+                        )
+                        Text(
+                            text = "• LiveKit Real-time: ${SupabaseConfig.liveKitServerUrl}",
+                            fontSize = 11.sp,
+                            color = Color(0xFF616161)
+                        )
+                        Text(
+                            text = "• Auth Token: Google / Supabase JWT Verified",
+                            fontSize = 11.sp,
+                            color = Color(0xFF616161)
+                        )
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = "• Supabase Backend: ${SupabaseConfig.projectUrl}",
-                        fontSize = 11.sp,
-                        color = Color(0xFF616161)
-                    )
-                    Text(
-                        text = "• LiveKit Real-time: ${SupabaseConfig.liveKitServerUrl}",
-                        fontSize = 11.sp,
-                        color = Color(0xFF616161)
-                    )
-                    Text(
-                        text = "• Auth Token: Google / Supabase JWT Verified",
-                        fontSize = 11.sp,
-                        color = Color(0xFF616161)
-                    )
                 }
             }
 
