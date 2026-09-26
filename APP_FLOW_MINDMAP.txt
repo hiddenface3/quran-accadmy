@@ -189,4 +189,10 @@ Date/Time: 2026-09-26 13:38:00 PKT
 • What it did: Enforced database-level security policies on profiles, classes, and active_calls.
 • File: supabase_rls_policies.sql
 • Rules: Students only read assigned classes; teachers only update their own sessions; Admin/Director has exclusive administrative rights.
+
+[FIX 17] Cloud Build & Local Download of All Real-Time, Security & Audio Upgrades
+Date/Time: 2026-09-26 13:45:00 PKT
+• What it did: Compiled all architecture, security, and VoIP improvements via GitHub Actions cloud CI (Run #36230384221).
+• Output: apk-dist/quran-academy-2026-09-26-13-45.apk (71,917,071 bytes / ~71.9 MB).
+• Features: Encrypted device storage, Supabase Realtime WebSockets, hardware echo cancellation, 3-bar signal meter, and full-screen call ringing.
 ================================================================================
