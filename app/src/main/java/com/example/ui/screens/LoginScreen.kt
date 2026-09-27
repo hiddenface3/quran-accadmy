@@ -114,13 +114,12 @@ fun LoginScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF09392B),
-                        Color(0xFF0E5B44),
-                        Color(0xFFF9F8F5),
-                        Color(0xFFFAF9F5)
+                        com.example.ui.theme.M3MintContainer.copy(alpha = 0.6f),
+                        com.example.ui.theme.M3CanvasBackground,
+                        Color.White
                     ),
                     startY = 0f,
-                    endY = 1200f
+                    endY = 800f
                 )
             )
     ) {
@@ -131,61 +130,65 @@ fun LoginScreen(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Academy Logo Crest
+            // Sacred Quran Academy Connect Emblem (Stitch M3 Design)
             Surface(
                 shape = CircleShape,
-                color = Color.White,
-                shadowElevation = 8.dp,
+                color = com.example.ui.theme.M3MintContainer,
                 modifier = Modifier
-                    .size(88.dp)
-                    .border(2.dp, GoldSecondary, CircleShape)
+                    .size(76.dp)
+                    .border(2.dp, com.example.ui.theme.M3EmeraldPrimary.copy(alpha = 0.25f), CircleShape)
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.background(
-                        Brush.radialGradient(
-                            colors = listOf(Color(0xFFFFFDF5), Color(0xFFF1EAD8))
-                        )
-                    )
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.MenuBook,
-                        contentDescription = "Quran Academy Crest",
-                        tint = EmeraldPrimary,
-                        modifier = Modifier.size(46.dp)
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White,
+                        modifier = Modifier.size(54.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.MenuBook,
+                                contentDescription = "Quran Academy Emblem",
+                                tint = com.example.ui.theme.M3EmeraldPrimary,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Quran Academy",
-                fontSize = 26.sp,
+                text = "Quran Academy Connect",
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = com.example.ui.theme.M3CharcoalText,
+                letterSpacing = (-0.5).sp
             )
 
             Text(
-                text = "Live 1-on-1 Quran Classroom with LiveKit & Supabase",
-                fontSize = 12.sp,
-                color = Color(0xFFC5EEDB),
-                modifier = Modifier.padding(top = 4.dp),
+                text = "Welcome back! Enter your details to access your live classes",
+                fontSize = 13.sp,
+                color = com.example.ui.theme.M3SlateText,
+                modifier = Modifier.padding(top = 4.dp, start = 12.dp, end = 12.dp),
                 textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Main Auth Card
+            // Main Auth Card (Material 3 Elevated Card)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("auth_card"),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3SageOutline),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
@@ -194,141 +197,153 @@ fun LoginScreen(
                         .padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Material 3 SELECT ROLE Label
                     Text(
-                        text = "Device Setup & Sign In",
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
-                    )
-
-                    Text(
-                        text = "Sign in on this phone as Student, Teacher, or Admin.",
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-                    )
-
-                    // Role selector tabs
-                    Text(
-                        text = "CHOOSE THIS DEVICE ROLE:",
+                        text = "SELECT ROLE",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF64748B),
+                        color = com.example.ui.theme.M3MutedText,
+                        letterSpacing = 1.sp,
                         modifier = Modifier.align(Alignment.Start)
                     )
 
-                    // Role selector tabs (iOS Segmented Pill)
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(58.dp),
-                        shape = RoundedCornerShape(29.dp),
-                        color = Color(0xFFF1F5F9)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Material 3 FilterChips Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            RoleSelectionTab(
-                                title = "Student",
-                                subtitle = if (activeRole == UserRole.STUDENT && detectedExistingAccount != null) "Detected" else "Portal",
-                                isSelected = activeRole == UserRole.STUDENT,
-                                onClick = { selectedRole = UserRole.STUDENT },
-                                modifier = Modifier.weight(1f)
-                            )
-                            RoleSelectionTab(
-                                title = "Teacher",
-                                subtitle = if (activeRole == UserRole.TEACHER && detectedExistingAccount != null) "Detected" else "Portal",
-                                isSelected = activeRole == UserRole.TEACHER,
-                                onClick = { selectedRole = UserRole.TEACHER },
-                                modifier = Modifier.weight(1f)
-                            )
-                            RoleSelectionTab(
-                                title = "Admin",
-                                subtitle = if (activeRole == UserRole.ADMIN && detectedExistingAccount != null) "Detected" else "Portal",
-                                isSelected = activeRole == UserRole.ADMIN,
-                                onClick = { selectedRole = UserRole.ADMIN },
-                                modifier = Modifier.weight(1f)
-                            )
+                        val roles = listOf(
+                            Triple(UserRole.STUDENT, "Student", Icons.Default.School),
+                            Triple(UserRole.TEACHER, "Teacher", Icons.Default.Person),
+                            Triple(UserRole.ADMIN, "Admin", Icons.Default.Security)
+                        )
+
+                        roles.forEach { (role, label, icon) ->
+                            val isSelected = activeRole == role
+                            Surface(
+                                onClick = { selectedRole = role },
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isSelected) com.example.ui.theme.M3MintSelected else Color.White,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (isSelected) com.example.ui.theme.M3EmeraldPrimary else com.example.ui.theme.M3SageOutline
+                                ),
+                                modifier = Modifier.weight(1f).height(40.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(horizontal = 6.dp)
+                                ) {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = com.example.ui.theme.M3EmeraldPrimary,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                    }
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) com.example.ui.theme.M3EmeraldPrimary else com.example.ui.theme.M3SlateText,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = label,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) com.example.ui.theme.M3EmeraldPrimary else com.example.ui.theme.M3SlateText
+                                    )
+                                }
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
-                    // Input: Full Name
+                    // Input: Full Name (Material 3 OutlinedTextField)
                     OutlinedTextField(
                         value = inputName,
                         onValueChange = { inputName = it },
-                        label = { Text("Your Full Name") },
+                        label = { Text("Full Name") },
                         placeholder = {
                             Text(
                                 when (activeRole) {
-                                    UserRole.STUDENT -> "e.g. Zaid Ahmed"
-                                    UserRole.TEACHER -> "e.g. Sheikh Abdullah"
-                                    UserRole.ADMIN -> "e.g. Ustadh Ibrahim"
+                                    UserRole.STUDENT -> "e.g., Zaid Ahmed"
+                                    UserRole.TEACHER -> "e.g., Sheikh Abdullah"
+                                    UserRole.ADMIN -> "e.g., Ustadh Ibrahim"
                                 }
                             )
                         },
                         leadingIcon = {
-                            Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = Color(0xFF059669))
+                            Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = com.example.ui.theme.M3EmeraldPrimary)
                         },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("user_name_input"),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF059669),
-                            unfocusedBorderColor = Color(0xFFE2E8F0),
-                            focusedContainerColor = Color(0xFFF8FAFC),
-                            unfocusedContainerColor = Color(0xFFF8FAFC)
+                            focusedBorderColor = com.example.ui.theme.M3EmeraldPrimary,
+                            unfocusedBorderColor = com.example.ui.theme.M3SageOutline,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Input: Email / Gmail
+                    // Input: Email / Gmail (Material 3 OutlinedTextField)
                     OutlinedTextField(
                         value = inputEmail,
                         onValueChange = { inputEmail = it },
-                        label = { Text("Gmail or Academy Email") },
+                        label = { Text("Gmail / Email Address") },
                         placeholder = {
                             Text(
                                 when (activeRole) {
-                                    UserRole.ADMIN -> "swabi5072@gmail.com"
+                                    UserRole.ADMIN -> "admin@quranacademy.com"
                                     UserRole.TEACHER -> "teacher@gmail.com"
                                     UserRole.STUDENT -> "student@gmail.com"
                                 }
                             )
                         },
+                        supportingText = {
+                            Text(
+                                text = "Use your registered academy Google account",
+                                fontSize = 11.sp,
+                                color = com.example.ui.theme.M3SlateText
+                            )
+                        },
                         leadingIcon = {
-                            Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = Color(0xFF059669))
+                            Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = com.example.ui.theme.M3EmeraldPrimary)
                         },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("user_email_input"),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF059669),
-                            unfocusedBorderColor = Color(0xFFE2E8F0),
-                            focusedContainerColor = Color(0xFFF8FAFC),
-                            unfocusedContainerColor = Color(0xFFF8FAFC)
+                            focusedBorderColor = com.example.ui.theme.M3EmeraldPrimary,
+                            unfocusedBorderColor = com.example.ui.theme.M3SageOutline,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
                         )
                     )
 
-                    // Account Already Exists Banner (Apple HIG Callout Card)
+                    // Account Already Exists Banner (Material 3 Callout Card)
                     if (detectedExistingAccount != null) {
                         Surface(
-                            color = Color(0xFFECFDF5),
+                            color = com.example.ui.theme.M3MintContainer,
                             shape = RoundedCornerShape(14.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFA7F3D0)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3EmeraldPrimary.copy(alpha = 0.3f)),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 10.dp)
+                                .padding(top = 8.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -336,7 +351,7 @@ fun LoginScreen(
                             ) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = Color(0xFF059669),
+                                    color = com.example.ui.theme.M3EmeraldPrimary,
                                     modifier = Modifier.size(22.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
@@ -354,12 +369,12 @@ fun LoginScreen(
                                         text = "Account already exists!",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF065F46)
+                                        color = com.example.ui.theme.M3EmeraldDark
                                     )
                                     Text(
                                         text = "Identity: ${detectedExistingAccount.second} (${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }}). Tap below to log in.",
                                         fontSize = 11.sp,
-                                        color = Color(0xFF047857)
+                                        color = com.example.ui.theme.M3EmeraldPrimary
                                     )
                                 }
                             }
@@ -386,7 +401,7 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Primary Button: Apple Pill Sign In
+                    // Primary Button: High-emphasis Material 3 Filled Button (54dp Stadium Pill)
                     Button(
                         onClick = {
                             val finalRole = activeRole
@@ -406,26 +421,54 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp)
+                            .height(54.dp)
                             .testTag("sign_in_and_sync_button"),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669))
+                        shape = RoundedCornerShape(27.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.M3EmeraldPrimary)
                     ) {
-                        Text(
-                            text = if (detectedExistingAccount != null) {
-                                "Log In to Existing ${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }} Account"
-                            } else {
-                                "Log In as ${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }}"
-                            },
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = if (detectedExistingAccount != null) {
+                                    "Continue to Portal (${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }})"
+                                } else {
+                                    "Continue to Portal"
+                                },
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // Secondary: Continue with Google (Apple Inset Style)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Divider(modifier = Modifier.weight(1f), color = com.example.ui.theme.M3SageBorder)
+                        Text(
+                            text = "  or continue with  ",
+                            fontSize = 11.sp,
+                            color = com.example.ui.theme.M3MutedText,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Divider(modifier = Modifier.weight(1f), color = com.example.ui.theme.M3SageBorder)
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Secondary: Sign In with Google (M3 Stadium Pill)
                     OutlinedButton(
                         onClick = {
                             viewModel.signInWithGoogle(
@@ -439,10 +482,10 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(50.dp)
                             .testTag("continue_with_google_button"),
-                        shape = RoundedCornerShape(16.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        shape = RoundedCornerShape(25.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3SageBorder),
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                     ) {
                         Row(
@@ -460,10 +503,10 @@ fun LoginScreen(
                             }
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Continue with Google Account",
-                                fontSize = 13.sp,
+                                text = "Sign In with Google",
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1E293B)
+                                color = com.example.ui.theme.M3CharcoalText
                             )
                         }
                     }
@@ -478,56 +521,64 @@ fun LoginScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Quick Demo Profiles (Material 3 Elevated Card from Stitch design)
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = com.example.ui.theme.M3MintSubtle,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3SageBorder),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Divider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
-                        Text(
-                            text = "  ONE-TAP PRESETS  ",
-                            fontSize = 10.sp,
-                            color = Color(0xFF9E9E9E),
-                            fontWeight = FontWeight.Bold
-                        )
-                        Divider(modifier = Modifier.weight(1f), color = Color(0xFFE0E0E0))
-                    }
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(bottom = 10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = com.example.ui.theme.M3EmeraldPrimary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "QUICK DEMO PROFILES",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = com.example.ui.theme.M3EmeraldPrimary,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 1-Tap Quick Setup Presets for 3 Phones
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        PresetButton(
-                            title = "Student",
-                            sub = "Zaid",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                viewModel.signInWithEmailAndRole("zaidkhan", "mytest5072@gmail.com", UserRole.STUDENT)
-                                onLoginSuccess(UserRole.STUDENT)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                PresetButton(
+                                    title = "Sheikh Abdullah",
+                                    sub = "Teacher",
+                                    avatarInitial = "SA",
+                                    isGreen = true,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        viewModel.signInWithEmailAndRole("saqib saib", "itskhan7733@gmail.com", UserRole.TEACHER)
+                                        onLoginSuccess(UserRole.TEACHER)
+                                    }
+                                )
+                                PresetButton(
+                                    title = "Zaid Ahmed",
+                                    sub = "Student",
+                                    avatarInitial = "ZA",
+                                    isGreen = false,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        viewModel.signInWithEmailAndRole("zaidkhan", "mytest5072@gmail.com", UserRole.STUDENT)
+                                        onLoginSuccess(UserRole.STUDENT)
+                                    }
+                                )
                             }
-                        )
-                        PresetButton(
-                            title = "Teacher",
-                            sub = "Saqib",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                viewModel.signInWithEmailAndRole("saqib saib", "itskhan7733@gmail.com", UserRole.TEACHER)
-                                onLoginSuccess(UserRole.TEACHER)
-                            }
-                        )
-                        PresetButton(
-                            title = "Admin",
-                            sub = "Director",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                viewModel.signInWithEmailAndRole("Admin Khan", "swabi5072@gmail.com", UserRole.ADMIN)
-                                onLoginSuccess(UserRole.ADMIN)
-                            }
-                        )
+                        }
                     }
                 }
             }
@@ -576,20 +627,51 @@ private fun RoleSelectionTab(
 private fun PresetButton(
     title: String,
     sub: String,
+    avatarInitial: String = "",
+    isGreen: Boolean = true,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedButton(
+    Surface(
         onClick = onClick,
-        modifier = modifier.height(44.dp),
+        modifier = modifier.height(52.dp),
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF8FAFC)),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+        color = com.example.ui.theme.M3MintSubtle,
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3SageBorder)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-            Text(text = sub, fontSize = 9.sp, color = Color(0xFF64748B))
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(if (isGreen) com.example.ui.theme.M3MintContainer else Color(0xFFE2E8F0)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = avatarInitial,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isGreen) com.example.ui.theme.M3EmeraldPrimary else com.example.ui.theme.M3CharcoalText
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(verticalArrangement = Arrangement.Center) {
+                Text(
+                    text = title,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = com.example.ui.theme.M3CharcoalText,
+                    maxLines = 1
+                )
+                Text(
+                    text = sub,
+                    fontSize = 10.sp,
+                    color = com.example.ui.theme.M3SlateText
+                )
+            }
         }
     }
 }

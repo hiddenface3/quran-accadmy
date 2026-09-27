@@ -1,227 +1,630 @@
 ================================================================================
-QURAN ACADEMY CONNECT - SYSTEM ARCHITECTURE & FLOW MIND MAP
-Generated: 2026-09-26 12:42:00 PKT
+QURAN ACADEMY CONNECT - COMPLETE SCREEN-BY-SCREEN FLOW & MINDMAP
+================================================================================
+Generated for: UI/UX Redesign & Architectural Specification
 Repository: hiddenface3/quran-accadmy
+Target File: d:\quran accadmy app\quran-academy-connect\APP_FLOW_MINDMAP.txt
+Technology: Jetpack Compose + MVVM + LiveKit WebRTC + Supabase + Firebase
 ================================================================================
 
-[1] HIGH-LEVEL APPLICATION FLOW MIND MAP
+TABLE OF CONTENTS:
 --------------------------------------------------------------------------------
-
-               [APP LAUNCH]
-                    │
-                    ▼
-          ┌───────────────────┐
-          │  AuthState Check  │
-          └─────────┬─────────┘
-                    │
-       ┌────────────┴────────────┐
-       ▼                         ▼
-[Unauthenticated]          [Authenticated]
-       │                         │
-       ▼                         ▼
- ┌────────────┐        ┌───────────────────────┐
- │ LoginScreen│        │ Role-Based Navigation │
- └─────┬──────┘        └───────────┬───────────┘
-       │                           │
-       ├─ Name & Gmail Input       ├─ STUDENT ──► HomeTab (Daily Verse, Next Class, Live Room)
-       ├─ Auto-Account Detection   ├─ TEACHER ──► ClassesTab (Today's Schedule, Start & Ring Student)
-       ├─ "Account Exists" Banner  └─ ADMIN   ──► AdminTab (Director Hub, Schedule Class, Profiles)
-       └─ One-Tap Presets
-                    │
-                    ▼
-          ┌───────────────────┐
-          │ Live Video Call   │
-          │ Classroom Session │
-          └─────────┬─────────┘
-                    │
-       ┌────────────┴────────────┐
-       ▼                         ▼
-[Native LiveKit WebRTC]   [Session Shutdown]
-  • Low latency (<150ms)    • Teacher clicks "End Class"
-  • Real-time Audio/Video   • Supabase sets status=COMPLETED
-  • Screen & Quran Overlay  • Student session shuts down automatically
-
-
---------------------------------------------------------------------------------
-[2] DETAILED SCREEN-BY-SCREEN FLOW
---------------------------------------------------------------------------------
-
-(A) LOGIN & IDENTITY FLOW (LoginScreen.kt)
-    ├── User enters Name and Gmail (password optional for now)
-    ├── App queries active registered students, teachers, and admin accounts
-    ├── IF account match detected:
-    │   ├── Displays green badge: "Account already exists! Identity: [Name] ([Role])"
-    │   ├── Auto-selects appropriate Role Tab (Student, Teacher, or Admin)
-    │   └── Changes button to: "Log In to Existing [Role] Account"
-    ├── User taps Log In:
-    │   ├── Signs in via AuthManager & syncs profile with Supabase
-    │   └── Routes directly to designated screen based on role
-    └── Bottom backend credentials card removed to keep secrets secure.
-
-(B) STUDENT SCREEN FLOW (HomeScreen.kt + QuranAcademyApp.kt)
-    ├── Home Tab:
-    │   ├── Displays enrolled tajweed level, current Surah, completed Juz
-    │   ├── Shows "Next Class" card with assigned Teacher Name
-    │   └── If incoming ring received from Teacher -> Displays full-screen Ringing Overlay
-    └── Live Classroom:
-        ├── Fullscreen bi-directional LiveKit WebRTC video and audio
-        ├── Interactive Quran Reader & Tajweed rules drawer
-        ├── Mute/Unmute mic, Camera switch, Raise hand
-        └── AUTO-TERMINATE: When Teacher ends class, session shuts down automatically for Student.
-
-(C) TEACHER SCREEN FLOW (ClassesScreen.kt)
-    ├── Classes Tab:
-    │   ├── Lists scheduled sessions with Student Name and Teacher Name
-    │   ├── "Start Class & Ring Student ([Student Name]) • Teacher: [Teacher Name]"
-    │   └── Scheduling controls HIDDEN (Restricted strictly to Admin)
-    └── Live Classroom:
-        ├── Full control over session duration, student mute status
-        ├── Quran overlay display shared across session
-        └── Tapping "End Class" updates call status to COMPLETED and terminates student session.
-
-(D) ADMIN SCREEN FLOW (AdminScreen.kt)
-    ├── Admin Tab:
-    │   ├── Academy Director overview: live metrics, student counts, teacher allocations
-    │   ├── Class Scheduling FAB & Dialog: Only Admin can schedule or assign classes
-    │   └── System Diagnostic & Backend Credentials configuration (Supabase & LiveKit keys)
-    └── Security:
-        └── Backend credentials card in ProfileScreen is visible ONLY to Admin role.
-
---------------------------------------------------------------------------------
-[3] STEP-BY-STEP REVISION & FIX LOG WITH TIMESTAMPS
---------------------------------------------------------------------------------
-
-[FIX 1] Replace Polling Relay with Native LiveKit SDK
-Date/Time: 2026-09-26 12:20:00 PKT
-• What it did: Removed slow HTTP Base64 JPEG frame polling loop in LiveCallEngine.kt.
-• Fix: Integrated io.livekit:livekit-android:2.18.2 with JitPack maven repository.
-• Result: Native WebRTC bi-directional audio/video under 150ms latency with low battery usage.
-
-[FIX 2] Login Flow Overhaul & Existing Account Detection
-Date/Time: 2026-09-26 12:25:00 PKT
-• What it did: Allowed students, teachers, and admins to log in with Name & Gmail.
-• Fix: Added reactive matching against active students, teachers, and admin accounts.
-• Result: Displays "Account already exists" banner and navigates to the user's role screen:
-  - Admin   -> Admin Tab
-  - Teacher -> Classes Tab
-  - Student -> Home Tab
-
-[FIX 3] Hide Backend Credentials & Secret URLs
-Date/Time: 2026-09-26 12:27:00 PKT
-• What it did: Prevented students and teachers from seeing sensitive Supabase and LiveKit keys.
-• Fix: Wrapped backend settings card in ProfileScreen with `if (currentUser.role == UserRole.ADMIN)`.
-• Result: Completely removed backend URLs and configuration cards from LoginScreen.
-
-[FIX 4] Restrict Class Scheduling to Admin Only
-Date/Time: 2026-09-26 12:28:00 PKT
-• What it did: Removed class creation ability from Teachers.
-• Fix: In ClassesScreen.kt, wrapped "New Class" button and schedule FAB with admin-only check.
-• Result: Only Director/Admin can create and schedule classes.
-
-[FIX 5] Automatic Student Session Shutdown on Teacher End Call
-Date/Time: 2026-09-26 12:30:00 PKT
-• What it did: Prevented student from lingering alone in a closed classroom.
-• Fix: In LiveClassroomScreen.kt, added LaunchedEffect listening to `classLiveState?.status == COMPLETED`.
-• Result: When teacher ends the session, student's app shows toast and automatically exits classroom.
-
-[FIX 6] Add Teacher Name & Student Name to Start Class & Ring Buttons
-Date/Time: 2026-09-26 12:31:00 PKT
-• What it did: Clarified student identity on call buttons so teachers never ring the wrong student.
-• Fix: Updated ClassesScreen and AcademyComponents with explicit labels:
-  "Start Class & Ring Student (${qClass.studentName}) • Teacher: ${qClass.teacherName}".
-• Result: Teacher clearly sees student name before launching or ringing.
-
-[FIX 7] Cloud APK Build & Packaging via GitHub Actions
-Date/Time: 2026-09-26 12:39:00 PKT
-• What it did: Automated full cloud compilation and artifact bundling on GitHub Actions.
-• Run: Run #36227344169 succeeded in 1m 47s.
-• Result: Production-ready debug APK with native WebRTC LiveKit binaries generated.
-
-[FIX 8] Local APK Download & Dated Binary Timestamping
-Date/Time: 2026-09-26 13:13:00 PKT
-• What it did: Downloaded artifact from GitHub Actions and generated timestamped APK.
-• Output: apk-dist/quran-academy-2026-09-26-13-13.apk (71,507,407 bytes / ~71.5 MB).
-• Includes: arm64-v8a, armeabi-v7a, x86, x86_64 native LiveKit WebRTC binaries.
-
-[FIX 9] Encrypted Device Storage (EncryptedSharedPreferences)
-Date/Time: 2026-09-26 13:20:00 PKT
-• What it did: Secured local preferences against device inspection or root extraction.
-• Fix: Used Jetpack Security `androidx.security.crypto.EncryptedSharedPreferences` with Android Keystore AES-256 GCM master key encryption in AppPreferences.kt.
-• Result: Profiles, tokens, and user credentials safely encrypted at rest.
-
-[FIX 10] LiveKit Token Security via Supabase Edge Function
-Date/Time: 2026-09-26 13:22:00 PKT
-• What it did: LiveKitTokenService now requests role-scoped participant tokens from Supabase Edge Function `/functions/v1/livekit-token`.
-• Result: Eliminates need to expose LIVEKIT_API_SECRET in decompiled APKs.
-
-[FIX 11] Hardware Acoustic Echo Cancellation (AEC) & Noise Suppression
-Date/Time: 2026-09-26 13:25:00 PKT
-• What it did: Configured VoIP audio engine with `AudioAttributes.USAGE_VOICE_COMMUNICATION` and `AudioManager.MODE_IN_COMMUNICATION`.
-• Fix: Attached Android hardware `AcousticEchoCanceler` and `NoiseSuppressor` to audio session.
-• Result: Zero audio screeching, howling feedback, or speakerphone echo loops during Quran recitation.
-
-[FIX 12] Real-Time LiveKit Connection Quality Signal Meter
-Date/Time: 2026-09-26 13:28:00 PKT
-• What it did: Added 3-bar signal indicator in LiveClassroomScreen header.
-• Fix: Listened to `RoomEvent.ConnectionQualityChanged` in LiveCallEngine and exposed StateFlow to UI.
-• Result: Real-time network signal feedback (Green = HD, Yellow = Low Bitrate, Red = Packet Loss).
-
-[FIX 13] Full-Screen Call Ringing Foreground Service
-Date/Time: 2026-09-26 13:30:00 PKT
-• What it did: Incoming calls ring out loud and show full-screen caller UI even when app is closed or screen is locked.
-• Fix: Implemented CallRingtoneService with `phoneCall` foreground service type, repeating vibration, ringtone, and `setFullScreenIntent`.
-• Result: Student never misses an incoming call from their teacher.
-
-[FIX 14] Supabase Realtime WebSockets for Incoming Calls
-Date/Time: 2026-09-26 13:37:00 PKT
-• What it did: Subscribed directly to Supabase Postgres Changes WebSocket (`supabase.realtime.channel`) via OkHttp WebSocket.
-• Fix: Joined `realtime:public:active_calls` topic and relaxed background REST polling loop from 1.5s to 15s.
-• Result: Zero idle battery drain, 90% reduction in network traffic, instant (<50ms) call ring arrival.
-
-[FIX 15] Seamless WebRTC ICE Restart on Network Switch
-Date/Time: 2026-09-26 13:36:00 PKT
-• What it did: Prevented stream stall when moving between Wi-Fi and 4G/5G mobile data.
-• Fix: Registered `ConnectivityManager.NetworkCallback` in MainActivity to trigger `LiveCallEngine.onNetworkChanged()`.
-• Result: Automated seamless ICE restart without call drops.
-
-[FIX 16] Supabase Postgres Row Level Security (RLS) Policies
-Date/Time: 2026-09-26 13:38:00 PKT
-• What it did: Enforced database-level security policies on profiles, classes, and active_calls.
-• File: supabase_rls_policies.sql
-• Rules: Students only read assigned classes; teachers only update their own sessions; Admin/Director has exclusive administrative rights.
-
-[FIX 17] Cloud Build & Local Download of All Real-Time, Security & Audio Upgrades
-Date/Time: 2026-09-26 13:45:00 PKT
-• What it did: Compiled all architecture, security, and VoIP improvements via GitHub Actions cloud CI (Run #36230384221).
-• Output: apk-dist/quran-academy-2026-09-26-13-45.apk (71,917,071 bytes / ~71.9 MB).
-• Features: Encrypted device storage, Supabase Realtime WebSockets, hardware echo cancellation, 3-bar signal meter, and full-screen call ringing.
-
-[FIX 18] Apple Human Interface Guidelines (HIG) Design Overhaul
-Date/Time: 2026-09-26 14:40:00 PKT
-• What it did: Transformed app aesthetics into an Apple-grade, polished, clean interface.
-• Fix 1: Replaced dark murky class details dialog with an iOS Floating Bottom Sheet Modal (pure white container, drag handle indicator, circular close button, and inset grouped metadata table).
-• Fix 2: Replaced flat Material TabRow in ClassesScreen with Apple Segmented Pill Control (capsule container holding sliding white pill segments).
-• Fix 3: Upgraded LoginScreen with 24dp rounded squircle auth cards, clean role selector capsules, and slate typography.
-• Fix 4: Upgraded MessageBubble in MessagesScreen to Apple iMessage style (continuous squircle curves, emerald sender bubble, light slate recipient bubble).
-• Fix 5: Locked theme default to Apple Light palette in Theme.kt to eliminate system dark-mode contrast clashes.
-
-[FIX 19] Apple HIG Comprehensive Polish Across All Screens & Dialogs
-Date/Time: 2026-09-26 14:55:00 PKT
-• What it did: Extended Apple Human Interface Guidelines throughout the entire app to ensure 100% aesthetic consistency.
-• Chat / Messages Screen: Frosted navigation header with active green online dot, Apple capsule search bar, Inset Grouped contact cards with hairline dividers, Apple action phrase carousel, and pinned iMessage bottom bar with circular emerald send button.
-• Login Screen: Deep emerald gradient header, Apple squircle auth card, iOS segmented role selector pills, rounded squircle input fields, affirmative green account detection callout card, full-width Apple pill CTA button, and action presets.
-• Classes Screen: Resolved clip & HorizontalDivider compilation imports, perfected Inset Grouped metadata rows, and enhanced Floating Sheet modal.
-• Home Screen: Converted role switch dialog and notifications bottom sheet to Apple squircle white containers, eliminating dark-on-dark contrast bugs on system dark mode devices.
-• Visual Mockups: Generated high-fidelity visual mockups for Classes Sheet, Home Screen, Login Screen, and Chat Screen.
-• Output: apk-dist/quran-academy-2026-09-26-15-10-apple-hig.apk (71,933,459 bytes / ~71.9 MB).
-• Status: Successfully built via GitHub Actions CI Run #36234258781 and verified on disk.
+[1] HIGH-LEVEL APPLICATION FLOW MINDMAP
+[2] ROLE-BASED NAVIGATION TREE
+[3] SCREEN 1: LOGIN & AUTHENTICATION SCREEN (LoginScreen.kt)
+[4] SCREEN 2: HOME DASHBOARD SCREEN (HomeScreen.kt)
+[5] SCREEN 3: QURAN CLASSES SCREEN (ClassesScreen.kt)
+[6] SCREEN 4: LIVE WEBRTC CLASSROOM STAGE (LiveClassroomScreen.kt)
+[7] SCREEN 5: MESSAGES & DIRECT CHAT SCREEN (MessagesScreen.kt)
+[8] SCREEN 6: USER PROFILE & SETTINGS SCREEN (ProfileScreen.kt)
+[9] SCREEN 7: ADMIN CONTROL CENTER (AdminScreen.kt)
+[10] SCREEN 8: INCOMING CALL FULLSCREEN OVERLAY (IncomingCallOverlay.kt)
+[11] GLOBAL MODALS, SHEETS & DIALOGS INVENTORY
+[12] DESIGN TOKENS, PALETTE & VISUAL ASSETS REFERENCE
 ================================================================================
 
 
-[FIX 20] Apple Bento Grid, Authentic Pill Controllers & Crossfade Animations
-Date/Time: 2026-09-26 15:35:00 PKT
-� What it did: Abandoned halfway Material UI adjustments for 100% authentic pixel-perfect Apple HIG mockups.
-� Fix 1: Built true iOS Segmented Pill Controllers in LoginScreen and ClassesScreen.
-� Fix 2: Refactored HomeScreen NextClassCard and LearningProgressCard into exact Apple bento-grid box layouts.
-� Fix 3: Applied smooth AnimatedContent crossfade transitions for navigation across all App states and tabs.
-� Result: The app now matches the generated Apple UI mockups and navigates seamlessly like an iOS app.
+================================================================================
+[1] HIGH-LEVEL APPLICATION FLOW MINDMAP
+================================================================================
+
+                        [ APP LAUNCH ]
+                              |
+                              v
+                    +-------------------+
+                    |  AuthState Check  |
+                    |  (AppPreferences) |
+                    +---------+---------+
+                              |
+             +----------------+----------------+
+             v                                 v
+     [Unauthenticated]                  [Authenticated]
+             |                                 |
+             v                                 v
+    +-----------------+             +---------------------+
+    │   LoginScreen   │             │   Main App Scaffold │
+    │ (Name / Gmail)  │             │   (Role-Based Nav)  │
+    +--------+--------+             +----------+----------+
+             |                                 |
+             v                                 |
+    +-----------------+                        |
+    │ Sign In Success │------------------------+
+    +-----------------+
+             |
+             +-----------------------+-----------------------+
+             v                       v                       v
+      [STUDENT ROLE]          [TEACHER ROLE]           [ADMIN ROLE]
+             |                       |                       |
+      +------+------+         +------+------+         +------+------+
+      |  Tabs:      |         |  Tabs:      |         |  Tabs:      |
+      |  1. Home    |         |  1. Home    |         |  1. Home    |
+      |  2. Classes │         │  2. Classes │         │  2. Classes │
+      |  3. Messages│         │  3. Messages│         │  3. Messages│
+      │  4. Profile │         │  4. Profile │         │  4. Admin   │
+      +------+------+         +------+------+         │  5. Profile │
+             |                       |                +------+------+
+             |                       |                       |
+             +---------------+-------+-----------------------+
+                             |
+            +----------------+----------------+
+            |                                 |
+            v (Teacher Starts Call)           v (Student Receives)
+   +------------------+             +-------------------+
+   │ Teacher Joins    │             │ Incoming Call     │
+   │ LiveClassroom    │             │ Fullscreen Ring   │
+   │ (Status = LIVE)  │             │ (Accept / Decline)│
+   +--------+---------+             +---------+---------+
+            |                                 | (Accept)
+            v                                 v
+   +----------------------------------------------------+
+   │         LIVE WEBRTC CLASSROOM STAGE                │
+   │  * Remote Video Track (Decoded by GPU)             │
+   │  * Local Camera Preview (Interactive PiP Tile)     │
+   │  * Swap Views Button                               │
+   │  * Real-Time DataChannel Chat Sheet (<20ms)        │
+   │  * Interactive Quran Recitation Board Overlay      │
+   │  * Bottom Media Bar (Mic, Cam, Speaker, Hand, End) │
+   +------------------------+---------------------------+
+                            |
+                            v (Teacher clicks "End Session")
+   +----------------------------------------------------+
+   │  Session Concluded (Status = COMPLETED)            │
+   │  LiveKit Room Disconnected & Disposed Cleanly      │
+   │  Teacher & Student Auto-Returned to Home           │
+   +----------------------------------------------------+
+
+
+================================================================================
+[2] ROLE-BASED NAVIGATION TREE
+================================================================================
+
+   [BOTTOM NAVIGATION BAR]
+   |-- [TAB 1: HOME]
+   |     |-- AcademyHeader (Avatar, Name, Role Chip, Unread Notifications Bell)
+   |     |-- Next Class Hero Card (One-Tap Start/Join)
+   |     |-- Learning Progress Card (Attendance %, Juz Memorized, Level)
+   |     `-- Upcoming Classes List Preview (Top 3 items + "See All" link)
+   |
+   |-- [TAB 2: CLASSES]
+   |     |-- Screen Header (Title + Subtitle + Admin "New Class" Button)
+   |     |-- Segmented Pill Tabs: [Upcoming (N) | Previous (N) | All (N)]
+   |     `-- Class Cards List
+   |           `-- Click Card ---> Opens ClassDetailsDialog
+   |
+   |-- [TAB 3: MESSAGES]
+   |     |-- Directory View (Teachers for Student / Students for Teacher / Admin Tabs)
+   |     |     |-- Search Bar (Filter contacts)
+   |     |     |-- Online Contacts Horizontal Story Bubbles
+   |     |     `-- Recent Chat Threads List
+   |     `-- 1-on-1 Chat View
+   |           |-- Top Contact Bar (Back Button, Avatar, Online Dot)
+   |           |-- Message Bubbles Feed (Sent/Received timestamps, checks)
+   |           `-- Bottom Message Composer (TextField + Send Button)
+   |
+   |-- [TAB 4: ADMIN HUB] (Visible ONLY if Role == ADMIN)
+   |     |-- Header Banner (Email + "Add Class" Button)
+   |     |-- Stats Overview (Total Students, Active Classes, Teachers)
+   |     |-- Segmented Tabs: [Student Roster | Class Operations | Teachers]
+   |     `-- Operations Modals (Assign Teacher, Delete Record, Schedule)
+   |
+   `-- [TAB 5: PROFILE]
+         |-- Gradient Profile Banner (Large Initials Avatar, Full Name, Email, Role Tag)
+         |-- Academy Enrollment Card (Assigned Teacher, Tajweed Level, Juz, Attendance %)
+         |-- Recent Attendance & Grades List (Past sessions, letter grade, notes)
+         |-- Backend Services Status Card (Admin Only -> LiveKit & Supabase Config Dialog)
+         `-- Log Out Outlined Button (Clears session, resets to LoginScreen)
+
+
+================================================================================
+[3] SCREEN 1: LOGIN & AUTHENTICATION SCREEN (LoginScreen.kt)
+================================================================================
+
+FILE LOCATION: app/src/main/java/com/example/ui/screens/LoginScreen.kt
+
+LAYOUT STRUCTURE (Top to Bottom):
+--------------------------------------------------------------------------------
+1. TOP HEADER & BRANDING:
+   * Background: Rich Emerald Vertical Gradient (Dark Green -> Light Sand)
+   * Academy Logo Crest:
+     - 88dp Circle, White background, GoldSecondary 2dp border
+     - Radial gold glow with MenuBook icon in deep emerald green
+   * App Title: "Quran Academy Connect" (24sp Bold White)
+   * App Subtitle: "Online Tajweed & Hifz Live Classroom Portal" (13sp Mint Green)
+
+2. SMART IDENTITY DETECTION BANNER:
+   * Trigger: Appears automatically when entered email/name matches an existing user
+   * Visual: Surface card with Green/Amber border
+   * Content: Check icon + "Recognized as [Role]: [User Name] - Ready to Sign In"
+
+3. ROLE SELECTION PILLS (When not auto-detected):
+   * Row of 3 selectable pills:
+     1. [STUDENT] (School Icon) - Default
+     2. [TEACHER] (Person Icon)
+     3. [ADMIN]   (Security Icon)
+   * Selection visual: Emerald container, white text; unselected: transparent, dark border
+
+4. INPUT FIELDS:
+   * Full Name OutlinedTextField:
+     - Leading Icon: Person
+     - Placeholder: "e.g. Sheikh Abdullah or Zaid Ahmed"
+     - Styling: Rounded 12dp, emerald focus border
+   * Gmail / Email Address OutlinedTextField:
+     - Leading Icon: Email
+     - Placeholder: "e.g. user@gmail.com"
+     - Styling: Rounded 12dp, emerald focus border
+
+5. PRIMARY ACTION BUTTONS:
+   * "Continue to Portal" Button:
+     - Large full-width button (52dp height, 12dp corners)
+     - Color: Deep Emerald Primary (0xFF0E5B44)
+     - Action: Validates input, saves user to AppPreferences, enters main app
+     - Loading state: Replaces text with CircularProgressIndicator
+   * "Sign In with Google" Button:
+     - Surface with Google logo / Credential Manager integration
+     - Fallback error note banner below if Google Play Services not present
+
+6. ONE-TAP DEMO PRESETS CARD:
+   * Header: "One-Tap Demo Switcher (Instant Test Profiles)"
+   * 3 Clickable Preset Rows:
+     - Row 1: "Sheikh Abdullah Al-Mansoor" (Senior Tajweed Teacher)
+     - Row 2: "Zaid Ahmed" (Enrolled Tajweed Student)
+     - Row 3: "Academy Administrator" (Director / Registrar)
+   * Action: Tapping any row fills fields and logs in immediately in that role
+
+7. FEATURE HIGHLIGHT CHIPS (Bottom):
+   * Row of 3 informational badges:
+     - "1-on-1 HD Live Video" (Videocam Icon)
+     - "Interactive Quran Board" (Book Icon)
+     - "Cloud Attendance & Realtime Push" (AutoAwesome Icon)
+
+
+================================================================================
+[4] SCREEN 2: HOME DASHBOARD SCREEN (HomeScreen.kt)
+================================================================================
+
+FILE LOCATION: app/src/main/java/com/example/ui/screens/HomeScreen.kt
+
+LAYOUT STRUCTURE (Top to Bottom):
+--------------------------------------------------------------------------------
+1. ACADEMY HEADER COMPONENT (AcademyHeader.kt):
+   * User Avatar circle with Initials + Online status indicator
+   * Welcome Text: "As-salamu alaykum," + User Full Name (18sp Bold)
+   * Role Badge: "STUDENT" / "TEACHER" / "ADMIN" pill
+   * Action Buttons (Top-Right):
+     - Role Switcher Icon: Opens Role Switch dialog for rapid testing
+     - Notifications Bell Icon: Displays red badge with unread count; opens sheet
+
+2. NEXT CLASS HERO BANNER (NextClassCard.kt):
+   * Visual: Large elevated card with dark emerald gradient + gold accent ring
+   * Header: "NEXT UPCOMING CLASS" tag + Live status dot
+   * Class Title: e.g. "Quran Reading & Tajweed Rules" (20sp Bold White)
+   * Topic Pill: e.g. "Surah Al-Mulk (Ayah 1-15)"
+   * Schedule Info:
+     - Date & Start Time: "Today * 6:00 PM (45 mins)"
+     - Teacher / Student Profile Row: Avatar + Name + Title
+   * HERO ACTION BUTTON:
+     - IF TEACHER: "Start Class & Ring Student" (Green pill, Phone/Video icon)
+       -> Action: Rings student via Supabase/FCM, starts LiveKit room, opens stage
+     - IF STUDENT: "Join Classroom" (if live) or "Class Scheduled" (if upcoming)
+       -> Action: Connects directly to LiveKit classroom stage
+     - IF COMPLETED: "Class Finished" (Disabled grey state)
+
+3. LEARNING PROGRESS CARD (LearningProgressCard.kt):
+   * Visual: White card with rounded corners, subtle shadow
+   * Progress Metrics Grid (3 Columns):
+     - Column 1: "Attendance" -> Percentage ring (e.g. 96%)
+     - Column 2: "Hifz Progress" -> Completed Juz count (e.g. 3 Juz)
+     - Column 3: "Current Level" -> Badge (e.g. "Intermediate")
+   * Current Surah Milestone: Progress bar toward memorization goal
+
+4. UPCOMING CLASSES PREVIEW SECTION:
+   * Section Header:
+     - Title: "Upcoming Classes" (18sp Bold)
+     - Action: "See All" TextButton -> Navigates to ClassesScreen
+   * Class Cards List:
+     - Cards showing Next 2-3 scheduled sessions
+     - Shows Instructor name, Surah topic, time countdown, and "Details" tap
+
+5. FLOATING INCOMING CALL LISTENER:
+   * Automatically presents IncomingCallOverlay if an active ringing call matches user
+
+
+================================================================================
+[5] SCREEN 3: QURAN CLASSES SCREEN (ClassesScreen.kt)
+================================================================================
+
+FILE LOCATION: app/src/main/java/com/example/ui/screens/ClassesScreen.kt
+
+LAYOUT STRUCTURE (Top to Bottom):
+--------------------------------------------------------------------------------
+1. SCREEN TOP BAR:
+   * Title: "Quran Classes" (22sp Bold)
+   * Subtitle: "Enrolled Curriculum & Sessions" (Student) / "Teaching Schedule" (Teacher)
+   * Action: "+ New Class" Button (Visible only for Admin) -> Opens CreateClassDialog
+
+2. SEGMENTED PILL TAB BAR (iOS Style):
+   * Container: Light grey rounded background pill (24dp corners)
+   * 3 Tabs:
+     1. [Upcoming (N)] -> Classes with status SCHEDULED or IN_PROGRESS
+     2. [Previous (N)] -> Classes with status COMPLETED or CANCELLED
+     3. [All (N)]      -> Complete class database
+   * Active tab: Pure white elevated pill with bold text
+
+3. CLASS ROSTER LIST:
+   * LazyColumn of ClassListItem cards
+   * Card Elements (ClassListItem.kt):
+     - Top Row: Surah Topic Badge (Gold) + Status Chip (Scheduled / Live / Completed)
+     - Title: Class Name (e.g. "Hifz Revision & Murattal Recitation")
+     - Instructor & Student Row: Avatars, Names, Titles
+     - Timing Row: Calendar icon + Date + Time icon + Start time + Duration
+     - Right Action Arrow: ChevronRight indicating card is clickable
+   * Card Tap Action: Opens ClassDetailsDialog
+
+4. CLASS DETAILS MODAL DIALOG (ClassDetailsDialog):
+   * Triggered by clicking any class card
+   * Detailed breakdown:
+     - Full class title, Surah Ayah range, syllabus objectives
+     - Instructor accreditation & Tajweed Ijazah
+     - Scheduled start time & duration countdown
+     - Syllabus & Tajweed focus notes
+   * Actions:
+     - If Teacher: "Start Class & Ring Student" primary button
+     - If Student: "Join Classroom" primary button
+     - If Admin: "Cancel Class" / "Delete Class" destructive button
+     - Dismiss button: "Close"
+
+5. CREATE CLASS MODAL DIALOG (CreateClassDialog - Admin):
+   * Fields:
+     - Class Title input
+     - Teacher Name dropdown / input
+     - Student Name dropdown / input
+     - Date input (e.g. "Today", "Tomorrow", "2026-09-30")
+     - Start Time input (e.g. "6:00 PM")
+     - Duration in minutes input (e.g. 45)
+     - Surah / Curriculum Topic input (e.g. "Surah Ya-Sin")
+   * Buttons: "Schedule Class" (Primary Emerald) | "Cancel" (Text)
+
+
+================================================================================
+[6] SCREEN 4: LIVE WEBRTC CLASSROOM STAGE (LiveClassroomScreen.kt)
+================================================================================
+
+FILE LOCATION: app/src/main/java/com/example/ui/screens/LiveClassroomScreen.kt
+
+LAYOUT STRUCTURE (Full Screen Video Stage):
+--------------------------------------------------------------------------------
+1. TOP LIVE BAR:
+   * Background: Semi-transparent dark glassmorphism (Color.Black 60% alpha)
+   * Left Controls:
+     - Back/Leave Arrow Button: Prompts End Call confirmation dialog
+     - Class Title text (14sp Bold White, truncated with ellipsis)
+     - Live Status Pill: Red blinking dot + "LIVE * MM:SS" call timer
+     - WebRTC Quality HUD: "LiveKit HD" badge + 3 animated cellular signal bars
+   * Right Controls:
+     - "End Session" Red Pill Button: Concludes class for both student & teacher
+     - "Swap Views" Button (SwapHoriz Icon): Swaps Main Stage and Floating PiP
+     - Hand Raise Indicator: Yellow hand pill (visible when student raises hand)
+     - "Quran Board" Button: Gold pill with Book icon -> Toggles Quran overlay
+
+2. MAIN VIDEO STAGE (Full Viewport):
+   * Remote Participant Video Surface (TextureViewRenderer):
+     - Hardware GPU decoding via WebRTC H.264/VP8
+     - Top-Left Badge: "LIVE * [Participant Name] ([Role]) * LiveKit HD WebRTC"
+     - Bottom-Left Audio Indicator: Mic icon (green when speaking, red when muted)
+     - Bottom-Right Security Badge: "Encrypted VoIP" with Security icon
+   * Fallback Avatar Mode (When Camera is Turned Off):
+     - Deep emerald radial background
+     - Circular initials avatar with animated pulsing voice wave aura when speaking
+     - Role badge, Full Name, Title, and status text:
+       "Camera is Turned Off * Audio Connected"
+
+3. FLOATING PICTURE-IN-PICTURE (PiP) TILE:
+   * Position: Top-Right (130dp width x 175dp height, 18dp rounded corners)
+   * Border: Emerald Primary (Green) or Red (if microphone is muted)
+   * Tap Action: Swaps local and remote video feeds
+   * Content:
+     - Local Camera Feed via LiveKitVideoRendererView (Mirrored for natural selfie view)
+     - Top Swap Pill: "Tap to swap" hint with Swap icon
+     - Fallback Avatar with "You (Role) * Cam Off" when local camera disabled
+
+4. INTERACTIVE QURAN RECITATION COMPANION (QuranCompanionCard Overlay):
+   * Trigger: Toggling "Quran Board" button in top bar
+   * Position: Floating over bottom half of video stage
+   * Visual: Dark glassmorphic card with gold Islamic border
+   * Content:
+     - Header: Surah Name + Ayah Number (e.g. "Surah Al-Mulk * Ayah 1 of 15")
+     - Arabic Ayah Text: Large Uthmani Arabic script (24sp Bold White)
+     - English Translation: Verse translation text (13sp Gold)
+     - Tajweed Rule Note: Callout box explaining rule (e.g. "Ikhfa Shafawi on Meem")
+   * Controls:
+     - "< Previous Ayah" Button
+     - "Next Ayah >" Button
+     - "Close Board" Icon Button
+
+5. IN-CLASS REAL-TIME QUICK CHAT SHEET (InClassChatSheet Overlay):
+   * Trigger: Toggling Chat icon in bottom control bar
+   * Position: Bottom modal overlay
+   * Features:
+     - Scrollable message thread between teacher and student
+     - Sub-20ms delivery powered by LiveKit WebRTC DataChannel (UDP peer-to-peer)
+     - Text field + Send icon button
+
+6. BOTTOM FLOATING CONTROL BAR (LiveClassControlBar):
+   * Background: Rounded floating pill container with black glassmorphism
+   * 6 Action Buttons in a Row:
+     1. [MIC TOGGLE]     : Mic / MicOff icon (Red background when muted)
+     2. [CAMERA TOGGLE]  : Videocam / VideocamOff (Red background when camera off)
+     3. [SPEAKER TOGGLE] : VolumeUp / Headphones (Toggles loud speaker vs earpiece)
+     4. [HAND RAISE]     : FrontHand icon (Gold background when hand is raised)
+     5. [CHAT SHEET]     : Chat icon (Toggles in-class quick chat sheet)
+     6. [END CALL]       : CallEnd icon (Large Red circular button -> Prompts dialog)
+
+7. CONFIRMATION DIALOGS:
+   * "End Live Quran Session?" AlertDialog:
+     - Explains session conclusion and marking completed
+     - Option A: "End Session" (Red -> marks completed, kicks both to home)
+     - Option B: "Leave Call Only" (Leaves call without ending class)
+     - Option C: "Stay in Class" (Dismisses dialog)
+
+
+================================================================================
+[7] SCREEN 5: MESSAGES & DIRECT CHAT SCREEN (MessagesScreen.kt)
+================================================================================
+
+FILE LOCATION: app/src/main/java/com/example/ui/screens/MessagesScreen.kt
+
+TWO DISTINCT OPERATIONAL MODES:
+--------------------------------------------------------------------------------
+MODE A: CONTACT DIRECTORY VIEW (selectedContact == null)
+   1. Header: "Messages" (24sp Bold) + Subtitle
+   2. Search OutlinedTextField: Search contacts by name, Surah, or Tajweed level
+   3. Admin Role Filter (Admin Only): Segmented tab [Teachers | Students]
+   4. Active Contacts Story Row: Horizontal row of circle avatars with green online dots
+   5. Conversation Thread Cards (LazyColumn):
+      - Left: Contact Circle Avatar with Initials + Online status indicator
+      - Middle:
+        * Contact Name (15sp Bold)
+        * Role Badge Pill (Teacher / Student)
+        * Subtitle / Level (e.g. "Surah Al-Baqarah", "Senior Instructor")
+        * Last Message Preview text (single line truncated)
+      - Right: Timestamp ("6:15 PM") + Unread Count Badge (if unread messages exist)
+      - Tap Action: Opens Mode B for that contact
+
+MODE B: 1-ON-1 CHAT VIEW (selectedContact != null)
+   1. Chat Header Bar:
+      - Back Arrow Button: Returns to Mode A Contact Directory
+      - Contact Circle Avatar
+      - Contact Name (16sp Bold White)
+      - Online Status Indicator: Green dot + "Active Now * Live Realtime"
+   2. Chat Message Feed (LazyColumn with auto-scroll):
+      - Sent Bubbles (isFromMe == true):
+        * Aligned to Right
+        * Color: Emerald Primary (0xFF0E5B44) with white text
+        * Timestamp + Double checkmark read receipt
+      - Received Bubbles (isFromMe == false):
+        * Aligned to Left
+        * Color: Soft Off-White / Grey with dark text
+        * Sender Name + Timestamp
+   3. Bottom Composer Bar:
+      - OutlinedTextField: "Type a message to [Name]..."
+      - Send Button: Circular Emerald button with Send icon
+      - Dual-Route Delivery: Dispatches via LiveKit DataChannel (<20ms) if in active call,
+        and saves permanently to Supabase messages table
+
+
+================================================================================
+[8] SCREEN 6: USER PROFILE & SETTINGS SCREEN (ProfileScreen.kt)
+================================================================================
+
+FILE LOCATION: app/src/main/java/com/example/ui/screens/ProfileScreen.kt
+
+LAYOUT STRUCTURE (Top to Bottom):
+--------------------------------------------------------------------------------
+1. PROFILE HERO BANNER:
+   * Deep Emerald Gradient Background
+   * Large 80dp Circle Avatar with gold border and user initial
+   * User Full Name (20sp Bold White)
+   * Email Address (13sp Mint Green)
+   * Role Tag: "ROLE: STUDENT" / "ROLE: TEACHER" / "ROLE: ADMIN" pill
+
+2. ACADEMY ENROLLMENT CARD:
+   * Section Title: "Academy Enrollment"
+   * 4 Information Rows with Icons:
+     1. [School Icon]        Assigned Teacher: Sheikh Abdullah Al-Mansoor
+     2. [MilitaryTech Icon]  Tajweed Level: Intermediate (Makharij & Sifat)
+     3. [Book Icon]          Memorization: 3 Juz completed
+     4. [CheckCircle Icon]   Attendance Rating: 96% Excellent
+
+3. RECENT ATTENDANCE & EVALUATION HISTORY CARD:
+   * Section Title: "Recent Attendance & Grades"
+   * History List Items:
+     - Class Title (e.g. "Surah Al-Mulk Tajweed Rules")
+     - Letter Grade badge: "A+", "A", "Pass" (Green text)
+     - Session info: "Yesterday * 45 mins * By Sheikh Abdullah"
+     - Teacher Evaluation Notes: "Makharij of throat letters improved; practice Qalqalah."
+
+4. BACKEND & LIVEKIT CLOUD SETTINGS CARD (Visible to Admin only):
+   * Title: "Backend Services" + "Active" Green Badge
+   * Shows configured Supabase URL, LiveKit Cloud URL, Auth status
+   * Tap Action: Opens BackendConfigDialog
+
+5. BACKEND CONFIGURATION DIALOG (BackendConfigDialog):
+   * LiveKit Cloud WebSocket URL input
+   * LiveKit API Key & API Secret inputs
+   * Supabase Project URL & Anon Key inputs
+   * "Copy Supabase SQL Tables Script" button (copies SQL migration to clipboard)
+
+6. LOG OUT OUTLINED BUTTON:
+   * Full-width red outlined button with ExitToApp icon
+   * Action: Clears user session, resets auth state, redirects to LoginScreen
+
+
+================================================================================
+[9] SCREEN 7: ADMIN CONTROL CENTER (AdminScreen.kt)
+================================================================================
+
+FILE LOCATION: app/src/main/java/com/example/ui/screens/AdminScreen.kt
+
+LAYOUT STRUCTURE (Top to Bottom):
+--------------------------------------------------------------------------------
+1. ADMIN HEADER:
+   * Title: "Admin Control Center" (20sp Bold) + AdminPanelSettings Icon
+   * Subtitle: "Logged in: admin@quranacademy.com"
+   * Action: "+ Add Class" Primary Button -> Opens CreateClassDialog
+
+2. STATS OVERVIEW PILLS (3 Columns):
+   * Pill 1: Total Enrolled Students (Count)
+   * Pill 2: Active & Scheduled Classes (Count)
+   * Pill 3: Certified Teachers (Count)
+
+3. 3-TAB SEGMENTED NAVIGATION:
+   * [Student Roster (N) | Class Operations (N) | Teachers (N)]
+
+4. TAB 1 CONTENT: STUDENT ROSTER:
+   * List of enrolled students
+   * Card elements: Student Name, Level, Current Surah, Assigned Teacher
+   * Actions:
+     - "Assign Teacher" Button -> Opens AssignTeacherDialog
+     - "Delete Student" Trash Icon -> Prompts DeleteConfirmationDialog
+
+5. TAB 2 CONTENT: CLASS OPERATIONS:
+   * List of all scheduled and ongoing classes
+   * Card elements: Title, Teacher, Student, Timing, Status
+   * Actions:
+     - "Start Live Call" Button (Triggers ringtone on student phone)
+     - "5-Min Reminder" Button (Sends urgent push notification)
+     - "Cancel / Delete" Button (Removes class from database)
+
+6. TAB 3 CONTENT: TEACHERS DIRECTORY:
+   * List of instructors
+   * Card elements: Name, Title, Ijazah accreditation, Active student count
+   * Actions: "Delete Teacher" Trash Icon
+
+
+================================================================================
+[10] SCREEN 8: INCOMING CALL FULLSCREEN OVERLAY (IncomingCallOverlay.kt)
+================================================================================
+
+FILE LOCATION: app/src/main/java/com/example/ui/screens/IncomingCallOverlay.kt
+
+LAYOUT STRUCTURE (Fullscreen Overlay):
+--------------------------------------------------------------------------------
+1. TOP STATUS PILL:
+   * Pill Container: Semi-transparent white with gold border
+   * Icon: PhoneInTalk (Animated ringing)
+   * Text: "LIVE QURAN CLASS CALLING" (Gold 12sp Bold, 1sp letter spacing)
+
+2. CALLER IDENTITY:
+   * Teacher Full Name (26sp Bold White, centered)
+   * Teacher Title (e.g. "Senior Tajweed & Qira'at Instructor" in mint green)
+
+3. ANIMATED PULSING AVATAR:
+   * Infinite transition pulsing aura (scale 0.95 -> 1.35)
+   * Emerald circular avatar with teacher initial
+   * Gold secondary border
+
+4. CLASS DETAILS CARD:
+   * Class Title: "Quran Reading & Tajweed Rules"
+   * Surah Topic Pill: "Surah Al-Mulk (Ayah 1-15)"
+   * Expected Duration: "45 minutes"
+   * Security Banner: "LiveKit HD WebRTC Encrypted Video Calling"
+
+5. LARGE CIRCULAR ACTION CONTROLS (Bottom):
+   * DECLINE BUTTON (Left):
+     - 68dp Red Circle (0xFFD32F2F) with CallEnd icon
+     - Label: "Decline"
+     - Action: Stops ringtone, dismisses overlay, marks call rejected
+   * ACCEPT BUTTON (Right):
+     - 68dp Emerald Circle (0xFF2E7D32) with Call icon + animated pulsing aura
+     - Label: "Accept Call"
+     - Action: Stops ringtone, connects LiveKit WebRTC session, opens LiveClassroomScreen
+
+
+================================================================================
+[11] GLOBAL MODALS, SHEETS & DIALOGS INVENTORY
+================================================================================
+
+1. NotificationsBottomSheet (HomeScreen.kt):
+   * Trigger: Bell icon in AcademyHeader
+   * Shows unread announcements, class schedule reminders, and call alerts
+   * Action: "Mark All as Read" + dismiss
+
+2. RoleSwitcherDialog (HomeScreen.kt):
+   * Trigger: Role badge click in header
+   * Instantly toggles active user between Student, Teacher, and Admin
+
+3. EndSessionConfirmationDialog (LiveClassroomScreen.kt):
+   * Trigger: Top-bar "End Session" or bottom-bar Red phone button
+   * Options: Conclude Session | Leave Only | Stay in Class
+
+4. ClassDetailsDialog (ClassesScreen.kt):
+   * Trigger: Clicking any class card in roster
+   * Full curriculum syllabus, start/join button, admin cancel options
+
+5. CreateClassDialog (ClassesScreen.kt & AdminScreen.kt):
+   * Trigger: "+ Add Class" button
+   * Form: Title, Teacher, Student, Date, Time, Duration, Topic
+
+6. AssignTeacherDialog (AdminScreen.kt):
+   * Trigger: "Assign Teacher" on student card
+   * Dropdown to reassign student to another instructor
+
+7. BackendConfigDialog (ProfileScreen.kt):
+   * Trigger: Backend services card (Admin only)
+   * LiveKit & Supabase credential editors + SQL migration script copy button
+
+
+================================================================================
+[12] DESIGN TOKENS, PALETTE & VISUAL ASSETS REFERENCE
+================================================================================
+
+BRAND COLOR PALETTE:
+--------------------------------------------------------------------------------
+* Emerald Primary:      #0E5B44 (Main buttons, active states, brand headers)
+* Emerald Dark:         #09392B (Background gradients, deep cards)
+* Emerald Light:        #C5EEDB (Subtitle text, mint accents, badges)
+* Gold Secondary:       #FFD54F (Royal gold borders, crests, Quran highlights)
+* Dark Gold:            #C89B3C (Islamic calligraphy and board frames)
+* Neutral Background:   #FAF9F5 (Warm cream paper background for cards)
+* Surface White:        #FFFFFF (Card backgrounds, dialog surfaces)
+* Dark Stage Ground:    #0F1513 (Live video stage dark backdrop)
+* Destructive Red:      #D32F2F (End call, mic mute, delete actions)
+* Success Green:        #2E7D32 (Call accept, connected status, 100% attendance)
+
+TYPOGRAPHY SCALING:
+--------------------------------------------------------------------------------
+* Display Titles:       24sp - 26sp Bold (Login Title, Caller Name, Screen Titles)
+* Section Headers:      18sp - 20sp Bold (Hero cards, upcoming classes, dialog titles)
+* Body & Card Titles:   14sp - 16sp SemiBold/Bold (Class names, contact names)
+* Captions & Badges:    10sp - 12sp Bold (Timestamps, role pills, status chips)
+* Arabic Script:        24sp Bold Traditional Arabic / Uthmani font for Quran Board
+
+SPATIAL SYSTEM & ELEVATION:
+--------------------------------------------------------------------------------
+* Card Corner Radius:   16dp - 18dp rounded corners
+* Button Corner Radius: 10dp - 12dp rounded corners
+* Pill Corner Radius:   20dp - 24dp stadium shapes
+* Floating Elevation:   2dp - 4dp for cards, 8dp - 10dp for video PiP and crests
+================================================================================
+END OF FLOW & MINDMAP SPECIFICATION
+================================================================================

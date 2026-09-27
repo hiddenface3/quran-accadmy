@@ -25,3 +25,8 @@ Example format:
 - Always adopt the established, battle-tested industry standard approach for the problem domain (e.g., native WebRTC hardware surface rendering for live video, standard background push for incoming calls, standard pub/sub data channels for instant messaging).
 - Strictly forbid makeshift hacks, anti-patterns, or illogical workarounds (such as streaming base64 JPEG images over database REST endpoints, duplicate hardware camera locks, or reinventing protocols already handled by the SDK).
 - Always research and adhere to the official SDK architecture and documentation (e.g., LiveKit official Android SDK guides) to ensure optimal battery life, hardware GPU acceleration, sub-100ms latency, and production reliability.
+
+### 4. Mid-Process Real-Time Updates & Plain English Explanations
+- Always inform the user immediately in the middle of executing a process, not only at the end.
+- Explain each step in plain, simple, crystal-clear English so the user always knows exactly what is happening in real time.
+- Provide both the mid-process update and the concluding summary.

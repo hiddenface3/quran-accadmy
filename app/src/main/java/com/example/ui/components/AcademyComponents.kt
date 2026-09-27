@@ -67,6 +67,15 @@ import com.example.data.model.QuranClass
 import com.example.data.model.UserProfile
 import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.theme.GoldSecondary
+import com.example.ui.theme.M3CanvasBackground
+import com.example.ui.theme.M3CharcoalText
+import com.example.ui.theme.M3EmeraldPrimary
+import com.example.ui.theme.M3MintContainer
+import com.example.ui.theme.M3MintSelected
+import com.example.ui.theme.M3MintSubtle
+import com.example.ui.theme.M3SageBorder
+import com.example.ui.theme.M3SlateText
+import com.example.ui.theme.M3SurfaceWhite
 
 @Composable
 fun AcademyHeader(
@@ -243,7 +252,7 @@ fun NextClassCard(
             containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        border = androidx.compose.foundation.BorderStroke(1.dp, M3SageBorder)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -253,7 +262,7 @@ fun NextClassCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
-                    .background(EmeraldPrimary)
+                    .background(M3EmeraldPrimary)
             )
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(
@@ -263,7 +272,7 @@ fun NextClassCard(
                 ) {
                     Text(
                         text = "NEXT SCHEDULED CLASS",
-                        color = Color(0xFF64748B),
+                        color = M3SlateText,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
@@ -271,10 +280,10 @@ fun NextClassCard(
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isLive) Color(0xFFFFEBEE) else Color(0xFFF1F5F9),
+                        color = if (isLive) Color(0xFFFFEBEE) else M3MintContainer,
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
-                            if (isLive) Color(0xFFE53935) else Color(0xFFE2E8F0)
+                            if (isLive) Color(0xFFE53935) else M3MintSelected
                         )
                     ) {
                         Row(
@@ -301,13 +310,13 @@ fun NextClassCard(
                                 Icon(
                                     imageVector = Icons.Default.Schedule,
                                     contentDescription = null,
-                                    tint = Color(0xFF0F172A),
+                                    tint = M3EmeraldPrimary,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "${quranClass.date} • ${quranClass.startTime}",
-                                    color = Color(0xFF0F172A),
+                                    color = M3EmeraldPrimary,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -320,9 +329,9 @@ fun NextClassCard(
 
                 Text(
                     text = quranClass.title,
-                    fontSize = 22.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
+                    color = M3CharcoalText
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -330,27 +339,27 @@ fun NextClassCard(
                 // Bento-style Details Grid
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFFF8FAFC),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    color = M3MintSubtle,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, M3SageBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Person, contentDescription = null, tint = M3EmeraldPrimary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Teacher: ${quranClass.teacherName}", fontSize = 13.sp, color = Color(0xFF334155), fontWeight = FontWeight.Medium)
+                            Text("Teacher: ${quranClass.teacherName}", fontSize = 13.sp, color = M3CharcoalText, fontWeight = FontWeight.Medium)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Person, contentDescription = null, tint = M3EmeraldPrimary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Student: ${quranClass.studentName}", fontSize = 13.sp, color = Color(0xFF334155), fontWeight = FontWeight.Medium)
+                            Text("Student: ${quranClass.studentName}", fontSize = 13.sp, color = M3CharcoalText, fontWeight = FontWeight.Medium)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Book, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Book, contentDescription = null, tint = M3EmeraldPrimary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Topic: ${quranClass.surahTopic}", fontSize = 13.sp, color = Color(0xFF64748B))
+                            Text("Topic: ${quranClass.surahTopic}", fontSize = 13.sp, color = M3SlateText)
                         }
                     }
                 }
@@ -369,9 +378,9 @@ fun NextClassCard(
                         .fillMaxWidth()
                         .height(52.dp)
                         .testTag("join_class_button"),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isLive) Color(0xFF0E5B44) else EmeraldPrimary
+                        containerColor = if (isLive) Color(0xFF0E5B44) else M3EmeraldPrimary
                     )
                 ) {
                     Icon(
@@ -406,7 +415,7 @@ fun LearningProgressCard(
             containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        border = androidx.compose.foundation.BorderStroke(1.dp, M3SageBorder)
     ) {
         Column(
             modifier = Modifier
@@ -422,7 +431,7 @@ fun LearningProgressCard(
                     Icon(
                         imageVector = Icons.Default.MenuBook,
                         contentDescription = null,
-                        tint = EmeraldPrimary,
+                        tint = M3EmeraldPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -430,20 +439,21 @@ fun LearningProgressCard(
                         text = "Quran Learning Progress",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = Color(0xFF0F172A)
+                        color = M3CharcoalText
                     )
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFECFDF5)
+                    shape = RoundedCornerShape(12.dp),
+                    color = M3MintContainer,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, M3MintSelected)
                 ) {
                     Text(
                         text = userProfile.attendanceRate + " Attendance",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF065F46),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        color = M3EmeraldPrimary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
             }
@@ -455,21 +465,21 @@ fun LearningProgressCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 ProgressMetricItem(
-                    label = "Current Surah",
+                    label = "Sabaq (Lesson)",
                     value = userProfile.currentSurah,
                     subtext = "Ayah ${userProfile.currentAyah}",
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 ProgressMetricItem(
-                    label = "Hifz Progress",
+                    label = "Sabaqi (Recent)",
                     value = "${userProfile.completedJuzCount} Juz",
                     subtext = "Memorized",
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 ProgressMetricItem(
-                    label = "Tajweed",
+                    label = "Manzil (Revision)",
                     value = "Level II",
                     subtext = "Ahkam Rules",
                     modifier = Modifier.weight(1f)
@@ -489,8 +499,8 @@ private fun ProgressMetricItem(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFFF8FAFC),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        color = M3MintSubtle,
+        border = androidx.compose.foundation.BorderStroke(1.dp, M3SageBorder)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -499,14 +509,16 @@ private fun ProgressMetricItem(
             Text(
                 text = label,
                 fontSize = 11.sp,
-                color = Color(0xFF64748B)
+                fontWeight = FontWeight.Medium,
+                color = M3SlateText,
+                maxLines = 1
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = value,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF0F172A),
+                color = M3CharcoalText,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -514,8 +526,8 @@ private fun ProgressMetricItem(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtext,
-                fontSize = 11.sp,
-                color = Color(0xFF94A3B8)
+                fontSize = 10.sp,
+                color = M3SlateText
             )
         }
     }

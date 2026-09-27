@@ -47,6 +47,10 @@ import com.example.ui.screens.MessagesScreen
 import com.example.ui.screens.ProfileScreen
 import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.theme.GoldSecondary
+import com.example.ui.theme.M3EmeraldPrimary
+import com.example.ui.theme.M3MintSelected
+import com.example.ui.theme.M3SlateText
+import com.example.ui.theme.M3SurfaceWhite
 
 enum class AcademyTab(
     val title: String,
@@ -149,8 +153,8 @@ fun QuranAcademyApp(
                     modifier = modifier.fillMaxSize(),
                     bottomBar = {
                         NavigationBar(
-                            containerColor = Color.White,
-                            contentColor = EmeraldPrimary,
+                            containerColor = M3SurfaceWhite,
+                            contentColor = M3EmeraldPrimary,
                             modifier = Modifier.testTag("academy_bottom_navigation")
                         ) {
                             visibleTabs.forEach { tab ->
@@ -182,15 +186,16 @@ fun QuranAcademyApp(
                                     label = {
                                         Text(
                                             text = tab.title,
-                                            fontSize = 10.sp
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal
                                         )
                                     },
                                     colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = EmeraldPrimary,
-                                        selectedTextColor = EmeraldPrimary,
-                                        indicatorColor = EmeraldPrimary.copy(alpha = 0.15f),
-                                        unselectedIconColor = Color(0xFF757575),
-                                        unselectedTextColor = Color(0xFF757575)
+                                        selectedIconColor = M3EmeraldPrimary,
+                                        selectedTextColor = M3EmeraldPrimary,
+                                        indicatorColor = M3MintSelected,
+                                        unselectedIconColor = M3SlateText,
+                                        unselectedTextColor = M3SlateText
                                     )
                                 )
                             }
