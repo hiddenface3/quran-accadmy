@@ -70,10 +70,10 @@ class CallRingtoneService : Service() {
             }
             context.startService(intent)
         }
-    }
 
-    private var ringtone: Ringtone? = null
-    private var vibrator: Vibrator? = null
+        private var activeRingtone: Ringtone? = null
+        private var activeVibrator: Vibrator? = null
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -176,21 +176,23 @@ class CallRingtoneService : Service() {
     }
 
     private fun startRingtoneAndVibration() {
+        stopRingtoneAndVibration()
+        
         try {
             val ringtoneUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            ringtone = RingtoneManager.getRingtone(applicationContext, ringtoneUri)
-            ringtone?.audioAttributes = AudioAttributes.Builder()
+            activeRingtone = RingtoneManager.getRingtone(applicationContext, ringtoneUri)
+            activeRingtone?.audioAttributes = AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build()
-            ringtone?.play()
+            activeRingtone?.play()
         } catch (e: Exception) {
             Log.w(TAG, "Ringtone play error: ${e.message}")
         }
 
         try {
-            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            activeVibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val mgr = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
                 mgr?.defaultVibrator
             } else {
@@ -200,10 +202,10 @@ class CallRingtoneService : Service() {
 
             val pattern = longArrayOf(0, 1000, 1000, 1000, 1000)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+                activeVibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
             } else {
                 @Suppress("DEPRECATION")
-                vibrator?.vibrate(pattern, 0)
+                activeVibrator?.vibrate(pattern, 0)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Vibrator error: ${e.message}")
@@ -212,13 +214,13 @@ class CallRingtoneService : Service() {
 
     private fun stopRingtoneAndVibration() {
         try {
-            ringtone?.stop()
-            ringtone = null
+            activeRingtone?.stop()
+            activeRingtone = null
         } catch (_: Exception) {}
 
         try {
-            vibrator?.cancel()
-            vibrator = null
+            activeVibrator?.cancel()
+            activeVibrator = null
         } catch (_: Exception) {}
     }
 

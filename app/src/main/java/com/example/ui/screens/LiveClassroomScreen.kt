@@ -166,11 +166,26 @@ fun LiveClassroomScreen(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         )
     }
+    var hasMicPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        )
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         hasCameraPermission = permissions[Manifest.permission.CAMERA] == true
+        hasMicPermission = permissions[Manifest.permission.RECORD_AUDIO] == true
+        
+        if (hasCameraPermission) {
+            viewModel.isCameraOn.value = true
+            com.example.livekit.LiveCallEngine.setLocalCameraOn(true)
+        }
+        if (hasMicPermission) {
+            viewModel.isMicMuted.value = false
+            com.example.livekit.LiveCallEngine.setLocalMicMuted(false)
+        }
     }
 
     LaunchedEffect(Unit) {
