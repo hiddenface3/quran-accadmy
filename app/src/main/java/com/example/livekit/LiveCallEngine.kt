@@ -111,14 +111,21 @@ object LiveCallEngine {
 
         liveKitJob = engineScope.launch {
             try {
+                val tier = com.example.utils.DevicePerformanceMonitor.getDeviceTier(context)
+                val (capWidth, capHeight, capFps) = if (tier == com.example.utils.DeviceTier.HIGH) {
+                    Triple(1280, 720, 30) // High-end HD
+                } else {
+                    Triple(640, 480, 24) // Low-end safe mode
+                }
+
                 val roomOptions = io.livekit.android.room.RoomOptions(
                     adaptiveStream = true,
                     dynacast = true,
                     videoCaptureDefaults = io.livekit.android.room.track.LocalVideoTrackOptions(
                         captureParams = io.livekit.android.room.track.VideoCaptureParameter(
-                            width = 640,
-                            height = 480,
-                            maxFps = 24
+                            width = capWidth,
+                            height = capHeight,
+                            maxFps = capFps
                         )
                     ),
                     videoTrackPublishDefaults = io.livekit.android.room.track.VideoTrackPublishDefaults(
