@@ -140,6 +140,19 @@ class AcademyRepository {
                 if (remoteStudents.isNotEmpty()) _students.value = remoteStudents
                 if (remoteTeachers.isNotEmpty()) _teachers.value = remoteTeachers
             }
+
+            // Fetch chat history ONCE on startup. Realtime WebSocket handles updates.
+            val chatResult = backendService.fetchChatMessages()
+            chatResult.onSuccess { remoteMsgs ->
+                if (remoteMsgs.isNotEmpty()) {
+                    val current = _currentUser.value
+                    _messages.value = remoteMsgs.map { msg ->
+                        val isFromMe = msg.senderId == current.id ||
+                                msg.senderName.trim().equals(current.name.trim(), ignoreCase = true)
+                        msg.copy(isFromMe = isFromMe)
+                    }
+                }
+            }
         } catch (e: Exception) {
             // Ignore transient network errors
         }
@@ -228,20 +241,10 @@ class AcademyRepository {
                         }
                     }
 
-                    // 4. Synchronize real-time chat messages across devices from Supabase
-                    val chatResult = backendService.fetchChatMessages()
-                    chatResult.onSuccess { remoteMsgs ->
-                        if (remoteMsgs.isNotEmpty()) {
-                            val localList = _messages.value
-                            val remoteMap = remoteMsgs.associateBy { it.id }
-                            val merged = (localList.filter { !remoteMap.containsKey(it.id) } + remoteMsgs).map { msg ->
-                                val isFromMe = msg.senderId == current.id ||
-                                        msg.senderName.trim().equals(current.name.trim(), ignoreCase = true)
-                                msg.copy(isFromMe = isFromMe)
-                            }
-                            _messages.value = merged
-                        }
-                    }
+                    // Removed: 3-second HTTP polling for chat messages. 
+                    // This was causing UI flickering and lag. We now rely on the <50ms Supabase 
+                    // Realtime WebSocket subscription setup in setupRealtimeCallSubscription().
+
                 } catch (e: Exception) {
                     // Ignore transient network errors
                 }
