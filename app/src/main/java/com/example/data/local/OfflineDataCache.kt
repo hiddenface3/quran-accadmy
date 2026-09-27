@@ -1,11 +1,9 @@
 package com.example.data.local
 
 import android.content.Context
-import com.example.data.model.AttendanceRecord
+import com.example.data.model.ClassStatus
 import com.example.data.model.Message
 import com.example.data.model.QuranClass
-import com.example.data.model.StudentInfo
-import com.example.data.model.TeacherInfo
 import com.example.data.model.UserRole
 import org.json.JSONArray
 import org.json.JSONObject
@@ -20,7 +18,6 @@ object OfflineDataCache {
     private const val CACHE_DIR = "offline_db"
     private const val CLASSES_FILE = "cached_classes.json"
     private const val MESSAGES_FILE = "cached_messages.json"
-    private const val ATTENDANCE_FILE = "cached_attendance.json"
 
     private var appContext: Context? = null
 
@@ -43,14 +40,18 @@ object OfflineDataCache {
                 val obj = JSONObject().apply {
                     put("id", c.id)
                     put("title", c.title)
-                    put("surahName", c.surahName)
                     put("teacherName", c.teacherName)
+                    put("teacherTitle", c.teacherTitle)
                     put("studentName", c.studentName)
-                    put("time", c.time)
+                    put("date", c.date)
+                    put("startTime", c.startTime)
+                    put("durationMinutes", c.durationMinutes)
                     put("status", c.status.name)
-                    put("roomName", c.liveKitRoomName)
-                    put("canJoin", c.canJoin)
-                    put("ayahRange", c.ayahRange)
+                    put("description", c.description)
+                    put("liveKitRoomName", c.liveKitRoomName)
+                    put("surahTopic", c.surahTopic)
+                    put("syllabusNotes", c.syllabusNotes)
+                    put("isNextClass", c.isNextClass)
                 }
                 jsonArray.put(obj)
             }
@@ -68,20 +69,24 @@ object OfflineDataCache {
             val list = mutableListOf<QuranClass>()
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
-                val statusStr = obj.optString("status", "UPCOMING")
-                val status = try { com.example.data.model.ClassStatus.valueOf(statusStr) } catch (_: Exception) { com.example.data.model.ClassStatus.UPCOMING }
+                val statusStr = obj.optString("status", "SCHEDULED")
+                val status = try { ClassStatus.valueOf(statusStr) } catch (_: Exception) { ClassStatus.SCHEDULED }
                 list.add(
                     QuranClass(
                         id = obj.optString("id", ""),
                         title = obj.optString("title", ""),
-                        surahName = obj.optString("surahName", ""),
                         teacherName = obj.optString("teacherName", ""),
+                        teacherTitle = obj.optString("teacherTitle", "Certified Qari & Hifz Instructor"),
                         studentName = obj.optString("studentName", ""),
-                        time = obj.optString("time", ""),
+                        date = obj.optString("date", "Today"),
+                        startTime = obj.optString("startTime", "04:00 PM"),
+                        durationMinutes = obj.optInt("durationMinutes", 45),
                         status = status,
-                        liveKitRoomName = obj.optString("roomName", ""),
-                        canJoin = obj.optBoolean("canJoin", false),
-                        ayahRange = obj.optString("ayahRange", "")
+                        description = obj.optString("description", ""),
+                        liveKitRoomName = obj.optString("liveKitRoomName", ""),
+                        surahTopic = obj.optString("surahTopic", "Surah Al-Mulk (Ayah 1-15)"),
+                        syllabusNotes = obj.optString("syllabusNotes", "Makharij Al-Huroof and Ghunnah rules recitation practice."),
+                        isNextClass = obj.optBoolean("isNextClass", false)
                     )
                 )
             }
