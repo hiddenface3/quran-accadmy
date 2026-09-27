@@ -131,6 +131,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+
+        // Crash Recovery State Guard
+        viewModelScope.launch {
+            repository.classes.collect { classList ->
+                val activeCallClassId = authManager.prefs.prefs.getString("active_call_class_id", null)
+                if (activeCallClassId != null && _activeLiveClass.value == null && !_isJoiningClass.value) {
+                    val activeClass = classList.find { it.id == activeCallClassId }
+                    if (activeClass != null && activeClass.status == ClassStatus.LIVE_NOW) {
+                        joinClass(activeClass)
+                    }
+                }
+            }
+        }
     }
 
     fun signInWithGoogle(
@@ -265,6 +278,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val isTeacher = (user.role == UserRole.TEACHER)
                     LiveCallEngine.setLocalMicMuted(isMicMuted.value)
                     LiveCallEngine.setLocalCameraOn(isCameraOn.value)
+                    
+                    // Crash Recovery State
+                    authManager.prefs.prefs.edit().putString("active_call_class_id", quranClass.id).apply()
+                    
+                    // Foreground Service Guard
+                    com.example.service.LiveKitCallService.startService(getApplication(), quranClass.title)
+
                     LiveCallEngine.startSession(
                         context = getApplication(),
                         classId = quranClass.id,
@@ -294,14 +314,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun endSession(classId: String) {
-        LiveCallEngine.stopSession()
+        LiveCallEngine.stopSession(getApplication())
         repository.endSession(classId)
         leaveClass(markCompleted = true)
     }
 
     fun leaveClass(markCompleted: Boolean = false) {
         val currentClass = _activeLiveClass.value
-        LiveCallEngine.stopSession()
+        LiveCallEngine.stopSession(getApplication())
+        
+        // Clear Crash Recovery State
+        authManager.prefs.prefs.edit().remove("active_call_class_id").apply()
+        
+        // Stop Foreground Service
+        com.example.service.LiveKitCallService.stopService(getApplication())
+
         callTimerJob?.cancel()
         callTimerJob = null
         callDurationSeconds.value = 0L

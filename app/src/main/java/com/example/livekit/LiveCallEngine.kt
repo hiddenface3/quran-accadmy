@@ -82,7 +82,16 @@ object LiveCallEngine {
         liveKitUrl: String = SupabaseConfig.liveKitServerUrl,
         liveKitToken: String = ""
     ) {
-        stopSession()
+        stopSession(context)
+
+        // Audio Routing Manager
+        try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
+            audioManager?.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
+            audioManager?.isSpeakerphoneOn = true
+        } catch (e: Exception) {
+            Log.w(TAG, "Audio routing setup error: ${e.message}")
+        }
 
         _localVideoTrack.value = null
         _remoteVideoTrack.value = null
@@ -102,7 +111,22 @@ object LiveCallEngine {
 
         liveKitJob = engineScope.launch {
             try {
-                val room = LiveKit.create(context.applicationContext)
+                val roomOptions = io.livekit.android.room.RoomOptions(
+                    adaptiveStream = true,
+                    dynacast = true,
+                    videoCaptureDefaults = io.livekit.android.room.track.LocalVideoTrackOptions(
+                        captureParams = io.livekit.android.room.track.VideoCaptureParameter(
+                            width = 640,
+                            height = 480,
+                            maxFps = 24
+                        )
+                    ),
+                    videoTrackPublishDefaults = io.livekit.android.room.track.VideoTrackPublishDefaults(
+                        simulcast = true
+                    )
+                )
+                
+                val room = LiveKit.create(context.applicationContext, roomOptions)
                 liveKitRoom = room
 
                 // Connect to LiveKit WebRTC server
@@ -260,10 +284,19 @@ object LiveCallEngine {
         }
     }
 
-    fun stopSession() {
+    fun stopSession(context: Context? = null) {
         Log.i(TAG, "Stopping LiveKit session")
         liveKitJob?.cancel()
         liveKitJob = null
+
+        try {
+            if (context != null) {
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
+                audioManager?.mode = android.media.AudioManager.MODE_NORMAL
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Audio routing restore error: ${e.message}")
+        }
 
         try {
             liveKitRoom?.disconnect()
@@ -325,5 +358,23 @@ object LiveCallEngine {
     // Keep compatibility with any legacy observer if needed
     val remoteVideoBitmap = MutableStateFlow<android.graphics.Bitmap?>(null).asStateFlow()
     fun onLocalCameraFrame(bitmap: android.graphics.Bitmap) {}
-    fun onNetworkChanged(isConnected: Boolean) {}
+    
+    // Network Drop Guard
+    fun onNetworkChanged(isConnected: Boolean) {
+        engineScope.launch {
+            try {
+                if (!isConnected) {
+                    Log.w(TAG, "Network lost: pausing local video to save bandwidth for audio")
+                    liveKitRoom?.localParticipant?.setCameraEnabled(false)
+                } else {
+                    Log.i(TAG, "Network restored: resuming local video")
+                    if (localCameraOn) {
+                        liveKitRoom?.localParticipant?.setCameraEnabled(true)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Network guard error: ${e.message}")
+            }
+        }
+    }
 }
