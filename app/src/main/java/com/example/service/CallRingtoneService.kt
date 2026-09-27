@@ -65,6 +65,12 @@ class CallRingtoneService : Service() {
         }
 
         fun stopRinging(context: Context) {
+            try {
+                activeRingtone?.stop()
+                activeRingtone = null
+                activeVibrator?.cancel()
+                activeVibrator = null
+            } catch (_: Exception) {}
             val intent = Intent(context, CallRingtoneService::class.java).apply {
                 action = ACTION_STOP_RING
             }

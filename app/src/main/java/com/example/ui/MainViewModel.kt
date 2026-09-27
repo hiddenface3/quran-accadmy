@@ -135,7 +135,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Crash Recovery State Guard
         viewModelScope.launch {
             repository.classes.collect { classList ->
-                val activeCallClassId = authManager.prefs.prefs.getString("active_call_class_id", null)
+                val activeCallClassId = authManager.prefs.getActiveCallClassId()
                 if (activeCallClassId != null && _activeLiveClass.value == null && !_isJoiningClass.value) {
                     val activeClass = classList.find { it.id == activeCallClassId }
                     if (activeClass != null && activeClass.status == ClassStatus.LIVE_NOW) {
@@ -280,7 +280,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     LiveCallEngine.setLocalCameraOn(isCameraOn.value)
                     
                     // Crash Recovery State
-                    authManager.prefs.prefs.edit().putString("active_call_class_id", quranClass.id).apply()
+                    authManager.prefs.setActiveCallClassId(quranClass.id)
                     
                     // Foreground Service Guard
                     com.example.service.LiveKitCallService.startService(getApplication(), quranClass.title)
@@ -324,7 +324,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         LiveCallEngine.stopSession(getApplication())
         
         // Clear Crash Recovery State
-        authManager.prefs.prefs.edit().remove("active_call_class_id").apply()
+        authManager.prefs.setActiveCallClassId(null)
         
         // Stop Foreground Service
         com.example.service.LiveKitCallService.stopService(getApplication())

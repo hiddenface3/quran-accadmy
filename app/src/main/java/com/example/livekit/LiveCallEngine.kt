@@ -3,12 +3,16 @@ package com.example.livekit
 import android.content.Context
 import android.util.Log
 import io.livekit.android.LiveKit
+import io.livekit.android.RoomOptions
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
 import io.livekit.android.room.Room
 import io.livekit.android.room.participant.RemoteParticipant
+import io.livekit.android.room.participant.VideoTrackPublishDefaults
+import io.livekit.android.room.track.LocalVideoTrackOptions
 import io.livekit.android.room.track.Track
 import io.livekit.android.room.track.TrackPublication
+import io.livekit.android.room.track.VideoCaptureParameter
 import io.livekit.android.room.track.VideoTrack
 import com.example.data.backend.AcademyBackendService
 import com.example.data.backend.SupabaseConfig
@@ -118,22 +122,25 @@ object LiveCallEngine {
                     Triple(640, 480, 24) // Low-end safe mode
                 }
 
-                val roomOptions = io.livekit.android.room.RoomOptions(
+                val roomOptions = RoomOptions(
                     adaptiveStream = true,
                     dynacast = true,
-                    videoCaptureDefaults = io.livekit.android.room.track.LocalVideoTrackOptions(
-                        captureParams = io.livekit.android.room.track.VideoCaptureParameter(
+                    videoTrackCaptureDefaults = LocalVideoTrackOptions(
+                        captureParams = VideoCaptureParameter(
                             width = capWidth,
                             height = capHeight,
                             maxFps = capFps
                         )
                     ),
-                    videoTrackPublishDefaults = io.livekit.android.room.track.VideoTrackPublishDefaults(
+                    videoTrackPublishDefaults = VideoTrackPublishDefaults(
                         simulcast = true
                     )
                 )
                 
-                val room = LiveKit.create(context.applicationContext, roomOptions)
+                val room = LiveKit.create(
+                    appContext = context.applicationContext,
+                    options = roomOptions
+                )
                 liveKitRoom = room
 
                 // Connect to LiveKit WebRTC server

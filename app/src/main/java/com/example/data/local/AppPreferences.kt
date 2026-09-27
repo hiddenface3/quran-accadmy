@@ -45,6 +45,7 @@ class AppPreferences(context: Context) {
         private const val KEY_SUPABASE_KEY = "supabase_key"
         private const val KEY_REGISTERED_EMAILS = "registered_emails"
         private const val KEY_FCM_TOKEN = "fcm_device_token"
+        private const val KEY_ACTIVE_CALL_CLASS_ID = "active_call_class_id"
     }
 
     fun saveFcmToken(token: String) {
@@ -193,5 +194,17 @@ class AppPreferences(context: Context) {
         }
         SupabaseConfig.projectUrl = projectUrl
         SupabaseConfig.anonKey = anonKey
+    }
+
+    fun setActiveCallClassId(classId: String?) {
+        if (classId != null) {
+            prefs.edit().putString(KEY_ACTIVE_CALL_CLASS_ID, classId).apply()
+        } else {
+            prefs.edit().remove(KEY_ACTIVE_CALL_CLASS_ID).apply()
+        }
+    }
+
+    fun getActiveCallClassId(): String? {
+        return prefs.getString(KEY_ACTIVE_CALL_CLASS_ID, null)
     }
 }

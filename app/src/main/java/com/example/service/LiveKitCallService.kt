@@ -46,7 +46,7 @@ class LiveKitCallService : Service() {
                 // Note: Ensure res/drawable/ic_launcher_foreground.xml exists, otherwise use a safe system icon.
                 val notification = NotificationCompat.Builder(this, CHANNEL_ID)
                     .setContentTitle("Live Quran Class Active")
-                    .setContentText("Connected to \$className")
+                    .setContentText("Connected to $className")
                     .setSmallIcon(android.R.drawable.ic_menu_camera)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setOngoing(true)
