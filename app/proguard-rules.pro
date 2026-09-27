@@ -1,21 +1,28 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ProGuard & R8 Optimization Rules for Quran Academy Connect
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preserve LiveKit and WebRTC native bindings
+-keep class io.livekit.android.** { *; }
+-keep interface io.livekit.android.** { *; }
+-keep class org.webrtc.** { *; }
+-keep interface org.webrtc.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Preserve data models used in JSON serialization
+-keep class com.example.data.model.** { *; }
+-keepclassmembers class com.example.data.model.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Preserve Room database entities and DAOs
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-dontwarn androidx.room.paging.**
+
+# Preserve OkHttp and Moshi
+-keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keep class com.squareup.moshi.** { *; }
+
+# Preserve AndroidX Cryptography
+-keep class androidx.security.crypto.** { *; }
+
+# Keep line numbers for error reporting
+-keepattributes SourceFile,LineNumberTable

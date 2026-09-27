@@ -728,10 +728,47 @@ class AcademyBackendService {
     }
 
     /**
-     * Send a chat message via Supabase active_calls storage
+     * Send a chat message via dedicated Supabase messages storage
      */
     suspend fun sendChatMessage(msg: Message): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
+            // 1. Try dedicated academy_messages table first (Industry Standard)
+            val dedicatedUrl = "${SupabaseConfig.projectUrl}/rest/v1/academy_messages"
+            val dedicatedJson = JSONObject().apply {
+                put("id", msg.id)
+                put("class_id", "chat")
+                put("sender_id", msg.senderId)
+                put("sender_name", msg.senderName)
+                put("sender_role", msg.senderRole.name)
+                put("receiver_id", msg.receiverId)
+                put("receiver_name", msg.receiverName)
+                put("message_text", msg.text)
+                put("timestamp", msg.timestamp)
+            }
+            val dedicatedBody = dedicatedJson.toString().toRequestBody(JSON_MEDIA)
+            val dedicatedReq = Request.Builder()
+                .url(dedicatedUrl)
+                .addHeader("apikey", SupabaseConfig.anonKey)
+                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Prefer", "resolution=merge-duplicates")
+                .post(dedicatedBody)
+                .build()
+
+            var isDedicatedSuccess = false
+            try {
+                client.newCall(dedicatedReq).execute().use { resp ->
+                    if (resp.isSuccessful || resp.code in 200..204) {
+                        isDedicatedSuccess = true
+                    }
+                }
+            } catch (_: Exception) {}
+
+            if (isDedicatedSuccess) {
+                return@withContext Result.success(true)
+            }
+
+            // 2. Backward compatibility fallback to active_calls
             val url = "${SupabaseConfig.projectUrl}/rest/v1/active_calls"
             val payloadObj = JSONObject().apply {
                 put("text", msg.text)

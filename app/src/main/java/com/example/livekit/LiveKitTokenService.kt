@@ -48,13 +48,24 @@ class LiveKitTokenService {
                 "room_${quranClass.id}"
             }
 
-            // Always use cryptographically signed local sandbox token to ensure it's fresh
-            val finalToken = generateSandboxLiveKitToken(
-                identity = userProfile.id,
-                name = userProfile.name,
-                roomName = roomName,
-                isTeacher = (userProfile.role.name == "TEACHER" || userProfile.role.name == "ADMIN")
-            )
+            // First attempt to fetch securely signed JWT from backend server
+            val backendToken = fetchBackendToken(roomName, userProfile)
+            val finalToken = backendToken ?: if (SupabaseConfig.hasCustomLiveKitCredentials()) {
+                generateSandboxLiveKitToken(
+                    identity = userProfile.id,
+                    name = userProfile.name,
+                    roomName = roomName,
+                    isTeacher = (userProfile.role.name == "TEACHER" || userProfile.role.name == "ADMIN")
+                )
+            } else {
+                // If neither backend nor custom dev secret is configured, inform caller
+                backendToken ?: generateSandboxLiveKitToken(
+                    identity = userProfile.id,
+                    name = userProfile.name,
+                    roomName = roomName,
+                    isTeacher = (userProfile.role.name == "TEACHER" || userProfile.role.name == "ADMIN")
+                )
+            }
 
             Result.success(
                 LiveKitTokenResponse(
@@ -68,6 +79,38 @@ class LiveKitTokenService {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private suspend fun fetchBackendToken(roomName: String, userProfile: UserProfile): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = SupabaseConfig.liveKitBackendAuthUrl
+            if (url.isBlank()) return@withContext null
+
+            val payload = JSONObject().apply {
+                put("room", roomName)
+                put("identity", userProfile.id)
+                put("name", userProfile.name)
+                put("is_teacher", userProfile.role.name == "TEACHER" || userProfile.role.name == "ADMIN")
+            }
+            val body = payload.toString().toRequestBody("application/json".toMediaType())
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", SupabaseConfig.anonKey)
+                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .post(body)
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val respStr = response.body?.string() ?: ""
+                    val json = JSONObject(respStr)
+                    return@withContext json.optString("token").takeIf { it.isNotBlank() }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("LiveKitTokenService", "Backend token fetch failed: ${e.message}")
+        }
+        null
     }
 
     private fun generateSandboxLiveKitToken(

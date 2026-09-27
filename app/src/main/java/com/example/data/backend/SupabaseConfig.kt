@@ -8,7 +8,7 @@ object SupabaseConfig {
     // LiveKit Cloud credentials & WebSocket URL
     var liveKitServerUrl: String = "wss://quran-accadmy-w23cv7zm.livekit.cloud"
     var liveKitApiKey: String = "APIHUMTB5KGJXq4"
-    var liveKitApiSecret: String = "oMfztnFEHCwEw3Y4hlge7KCDrba8gKa7eqymfU9CEt5A"
+    var liveKitApiSecret: String = ""
     var liveKitBackendAuthUrl: String = "https://amcdmiioovbhzkjqxdrk.supabase.co/functions/v1/livekit-token"
     
     var isConfigured: Boolean = true

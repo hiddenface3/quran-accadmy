@@ -148,8 +148,6 @@ fun LiveClassroomScreen(
     val remoteIsCameraOn by viewModel.remoteIsCameraOn.collectAsStateWithLifecycle()
     val remoteIsMicMuted by viewModel.remoteIsMicMuted.collectAsStateWithLifecycle()
     val remoteIsSpeaking by viewModel.remoteIsSpeaking.collectAsStateWithLifecycle()
-    val localAudioLevel by viewModel.localAudioLevel.collectAsStateWithLifecycle()
-    val remoteAudioLevel by viewModel.remoteAudioLevel.collectAsStateWithLifecycle()
     val isPeerConnected by viewModel.isPeerConnected.collectAsStateWithLifecycle()
     val connectionMode by viewModel.connectionMode.collectAsStateWithLifecycle()
     val connectionQuality by viewModel.connectionQuality.collectAsStateWithLifecycle()
@@ -572,7 +570,6 @@ fun LiveClassroomScreen(
                             isRemoteCameraOn = remoteIsCameraOn,
                             isRemoteMicMuted = remoteIsMicMuted,
                             isRemoteSpeaking = remoteIsSpeaking,
-                            audioLevel = remoteAudioLevel,
                             connectionMode = connectionMode,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -584,7 +581,6 @@ fun LiveClassroomScreen(
                             hasPermission = hasCameraPermission,
                             isCameraOn = isCameraOn,
                             isMicMuted = isMicMuted,
-                            localAudioLevel = localAudioLevel,
                             room = liveKitRoom,
                             videoTrack = localVideoTrack,
                             modifier = Modifier.fillMaxSize()
@@ -846,8 +842,6 @@ fun LiveKitVideoRendererView(
     modifier: Modifier = Modifier,
     mirror: Boolean = false
 ) {
-    var boundTrack by remember { mutableStateOf<VideoTrack?>(null) }
-
     AndroidView(
         factory = { ctx ->
             TextureViewRenderer(ctx).apply {
@@ -858,15 +852,35 @@ fun LiveKitVideoRendererView(
                 } catch (e: Exception) {
                     android.util.Log.w("LiveKitRenderer", "init error: ${e.message}")
                 }
+
+                // Window attach guard: unbind track on window detach to prevent EGL surface deadlock
+                addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
+                    override fun onViewAttachedToWindow(v: android.view.View) {
+                        try {
+                            val track = tag as? VideoTrack
+                            track?.addRenderer(this@apply)
+                        } catch (_: Exception) {}
+                    }
+
+                    override fun onViewDetachedFromWindow(v: android.view.View) {
+                        try {
+                            val track = tag as? VideoTrack
+                            track?.removeRenderer(this@apply)
+                        } catch (_: Exception) {}
+                    }
+                })
             }
         },
         update = { renderer ->
             try {
                 renderer.setMirror(mirror)
-                if (boundTrack != videoTrack) {
-                    boundTrack?.removeRenderer(renderer)
-                    boundTrack = videoTrack
-                    videoTrack?.addRenderer(renderer)
+                val prevTrack = renderer.tag as? VideoTrack
+                if (prevTrack != videoTrack) {
+                    prevTrack?.removeRenderer(renderer)
+                    renderer.tag = videoTrack
+                    if (renderer.isAttachedToWindow) {
+                        videoTrack?.addRenderer(renderer)
+                    }
                 }
             } catch (e: Exception) {
                 android.util.Log.w("LiveKitRenderer", "update error: ${e.message}")
@@ -874,8 +888,9 @@ fun LiveKitVideoRendererView(
         },
         onRelease = { renderer ->
             try {
-                boundTrack?.removeRenderer(renderer)
-                boundTrack = null
+                val prevTrack = renderer.tag as? VideoTrack
+                prevTrack?.removeRenderer(renderer)
+                renderer.tag = null
                 renderer.release()
             } catch (_: Exception) {}
         },
@@ -893,7 +908,6 @@ private fun RemoteLiveFeedTile(
     isRemoteCameraOn: Boolean,
     isRemoteMicMuted: Boolean,
     isRemoteSpeaking: Boolean,
-    audioLevel: Float,
     connectionMode: String,
     modifier: Modifier = Modifier
 ) {
@@ -1115,7 +1129,6 @@ private fun LocalLiveFeedTile(
     hasPermission: Boolean,
     isCameraOn: Boolean,
     isMicMuted: Boolean,
-    localAudioLevel: Float,
     room: Room?,
     videoTrack: VideoTrack?,
     modifier: Modifier = Modifier

@@ -20,19 +20,17 @@ class AcademyFirebaseMessagingService : FirebaseMessagingService() {
 
         fun initializeTopics(prefs: AppPreferences) {
             try {
-                FirebaseMessaging.getInstance().subscribeToTopic(TOPIC_CALLS)
+                // Industry standard: Unsubscribe from global broadcast to eliminate device battery drain
+                FirebaseMessaging.getInstance().unsubscribeFromTopic(TOPIC_CALLS)
+
                 val user = prefs.getSavedUser()
                 if (user != null) {
                     val sanitizedId = user.id.replace(Regex("[^a-zA-Z0-9-_.~%]+"), "_")
                     if (sanitizedId.isNotBlank()) {
                         FirebaseMessaging.getInstance().subscribeToTopic("user_$sanitizedId")
                     }
-                    val sanitizedName = user.name.lowercase().trim().replace(Regex("[^a-zA-Z0-9-_.~%]+"), "_")
-                    if (sanitizedName.isNotBlank()) {
-                        FirebaseMessaging.getInstance().subscribeToTopic("student_$sanitizedName")
-                    }
                 }
-                Log.i(TAG, "Subscribed to FCM call topics successfully")
+                Log.i(TAG, "Subscribed strictly to user-specific FCM call topics")
             } catch (e: Exception) {
                 Log.w(TAG, "Topic subscription error: ${e.message}")
             }
@@ -78,17 +76,21 @@ class AcademyFirebaseMessagingService : FirebaseMessagingService() {
                 val prefs = AppPreferences(applicationContext)
                 val currentUser = prefs.getSavedUser()
 
-                // Filter: if user is student, verify target name matches
-                if (currentUser != null && currentUser.role == UserRole.STUDENT && studentName.isNotBlank()) {
-                    val cleanTarget = studentName.trim().lowercase()
-                    val cleanCurrent = currentUser.name.trim().lowercase()
-                    val isMatch = cleanTarget == cleanCurrent ||
-                            cleanTarget.contains(cleanCurrent) ||
-                            cleanCurrent.contains(cleanTarget)
+                val targetStudentId = data["student_id"] ?: ""
 
-                    if (!isMatch) {
-                        Log.d(TAG, "Call ignored: intended for $studentName, current user is ${currentUser.name}")
+                // Strict ID matching: prevent false rings and unwanted wakeups
+                if (currentUser != null && currentUser.role == UserRole.STUDENT) {
+                    if (targetStudentId.isNotBlank() && currentUser.id != targetStudentId) {
+                        Log.d(TAG, "Call ignored: student ID mismatch (target: $targetStudentId, current: ${currentUser.id})")
                         return
+                    }
+                    if (targetStudentId.isBlank() && studentName.isNotBlank()) {
+                        val cleanTarget = studentName.trim().lowercase()
+                        val cleanCurrent = currentUser.name.trim().lowercase()
+                        if (cleanTarget != cleanCurrent) {
+                            Log.d(TAG, "Call ignored: intended for $studentName, current user is ${currentUser.name}")
+                            return
+                        }
                     }
                 }
 

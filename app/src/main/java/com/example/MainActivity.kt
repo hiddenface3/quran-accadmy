@@ -45,6 +45,8 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        com.example.data.local.OfflineDataCache.initialize(applicationContext)
+
         setupNetworkMonitoring()
         setContent {
             QuranAcademyTheme {

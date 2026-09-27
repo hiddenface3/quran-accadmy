@@ -104,10 +104,10 @@ class AcademyRepository {
     )
     val currentUser: StateFlow<UserProfile> = _currentUser.asStateFlow()
 
-    private val _classes = MutableStateFlow<List<QuranClass>>(initialClasses())
+    private val _classes = MutableStateFlow<List<QuranClass>>(com.example.data.local.OfflineDataCache.loadClasses() ?: initialClasses())
     val classes: StateFlow<List<QuranClass>> = _classes.asStateFlow()
 
-    private val _messages = MutableStateFlow<List<Message>>(initialMessages())
+    private val _messages = MutableStateFlow<List<Message>>(com.example.data.local.OfflineDataCache.loadMessages() ?: initialMessages())
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
     private val _notifications = MutableStateFlow<List<NotificationItem>>(initialNotifications())
@@ -132,6 +132,7 @@ class AcademyRepository {
             remoteClassesResult.onSuccess { remoteList ->
                 if (remoteList.isNotEmpty()) {
                     _classes.value = remoteList
+                    com.example.data.local.OfflineDataCache.saveClasses(remoteList)
                 }
             }
 
@@ -146,11 +147,13 @@ class AcademyRepository {
             chatResult.onSuccess { remoteMsgs ->
                 if (remoteMsgs.isNotEmpty()) {
                     val current = _currentUser.value
-                    _messages.value = remoteMsgs.map { msg ->
+                    val mapped = remoteMsgs.map { msg ->
                         val isFromMe = msg.senderId == current.id ||
                                 msg.senderName.trim().equals(current.name.trim(), ignoreCase = true)
                         msg.copy(isFromMe = isFromMe)
                     }
+                    _messages.value = mapped
+                    com.example.data.local.OfflineDataCache.saveMessages(mapped)
                 }
             }
         } catch (e: Exception) {

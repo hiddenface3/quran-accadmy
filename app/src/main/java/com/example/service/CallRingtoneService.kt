@@ -57,10 +57,16 @@ class CallRingtoneService : Service() {
                 putExtra(EXTRA_CLASS_ID, classId)
                 putExtra(EXTRA_ROOM_NAME, roomName)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "startForegroundService not allowed from background (Android 14+): ${e.message}. Posting high-priority incoming call notification directly.")
+                // Android 14 background launch guard: post CallStyle notification directly without FGS
+                postDirectIncomingCallNotification(context, teacherName, studentName, classId, roomName)
             }
         }
 
@@ -79,6 +85,81 @@ class CallRingtoneService : Service() {
 
         private var activeRingtone: Ringtone? = null
         private var activeVibrator: Vibrator? = null
+
+        fun postDirectIncomingCallNotification(
+            context: Context,
+            teacherName: String,
+            studentName: String,
+            classId: String,
+            roomName: String
+        ) {
+            try {
+                val fullScreenIntent = Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra(EXTRA_CLASS_ID, classId)
+                    putExtra(EXTRA_ROOM_NAME, roomName)
+                }
+                val fullScreenPendingIntent = PendingIntent.getActivity(
+                    context,
+                    0,
+                    fullScreenIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+
+                val declineIntent = Intent(context, CallRingtoneService::class.java).apply {
+                    action = ACTION_DECLINE_CALL
+                }
+                val declinePendingIntent = PendingIntent.getService(
+                    context,
+                    1,
+                    declineIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+
+                val caller = androidx.core.app.Person.Builder()
+                    .setName(teacherName)
+                    .setImportant(true)
+                    .build()
+
+                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val channel = NotificationChannel(
+                        CHANNEL_ID,
+                        "Quran Academy Incoming Calls",
+                        NotificationManager.IMPORTANCE_HIGH
+                    ).apply {
+                        description = "Live 1-on-1 Quran tutoring incoming call alerts"
+                        enableVibration(true)
+                        vibrationPattern = longArrayOf(0, 1000, 1000, 1000)
+                        lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                    }
+                    notificationManager?.createNotificationChannel(channel)
+                }
+
+                val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_menu_call)
+                    .setContentTitle("Incoming Quran Live Class")
+                    .setContentText("$teacherName is calling $studentName for Live Session")
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_CALL)
+                    .setAutoCancel(true)
+                    .setOngoing(true)
+                    .setStyle(
+                        NotificationCompat.CallStyle.forIncomingCall(
+                            caller,
+                            declinePendingIntent,
+                            fullScreenPendingIntent
+                        )
+                    )
+                    .setFullScreenIntent(fullScreenPendingIntent, true)
+                    .setContentIntent(fullScreenPendingIntent)
+                    .build()
+
+                notificationManager?.notify(NOTIFICATION_ID, notification)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to post direct incoming call notification: ${e.message}")
+            }
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -170,14 +251,20 @@ class CallRingtoneService : Service() {
             .setContentIntent(fullScreenPendingIntent)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "startForeground failed (Android 14 background restriction): ${e.message}. Posting via NotificationManager.")
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            manager?.notify(NOTIFICATION_ID, notification)
         }
     }
 
