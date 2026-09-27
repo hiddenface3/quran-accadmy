@@ -87,7 +87,7 @@ fun QuranAcademyApp(
     val unreadMessageCount = messages.count { !it.isRead && !it.isFromMe }
 
     val visibleTabs = if (currentUser.role == UserRole.ADMIN) {
-        listOf(AcademyTab.HOME, AcademyTab.CLASSES, AcademyTab.ADMIN, AcademyTab.MESSAGES, AcademyTab.PROFILE)
+        listOf(AcademyTab.HOME, AcademyTab.CLASSES, AcademyTab.MESSAGES, AcademyTab.ADMIN, AcademyTab.PROFILE)
     } else {
         listOf(AcademyTab.HOME, AcademyTab.CLASSES, AcademyTab.MESSAGES, AcademyTab.PROFILE)
     }
@@ -186,16 +186,16 @@ fun QuranAcademyApp(
                                     label = {
                                         Text(
                                             text = tab.title,
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal
+                                            fontSize = 10.sp,
+                                            fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.Medium else androidx.compose.ui.text.font.FontWeight.Normal
                                         )
                                     },
                                     colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = M3EmeraldPrimary,
-                                        selectedTextColor = M3EmeraldPrimary,
-                                        indicatorColor = M3MintSelected,
-                                        unselectedIconColor = M3SlateText,
-                                        unselectedTextColor = M3SlateText
+                                        selectedIconColor = com.example.ui.theme.BrandPrimaryEmerald,
+                                        selectedTextColor = com.example.ui.theme.BrandPrimaryEmerald,
+                                        indicatorColor = com.example.ui.theme.BrandSoftGreenSurface,
+                                        unselectedIconColor = Color(0xFF7D8580),
+                                        unselectedTextColor = Color(0xFF7D8580)
                                     )
                                 )
                             }

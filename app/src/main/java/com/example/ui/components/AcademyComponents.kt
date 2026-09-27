@@ -85,135 +85,123 @@ fun AcademyHeader(
     onRoleSwitchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .testTag("academy_header_card"),
-        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        )
+            .background(BrandPageBackground)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .testTag("academy_header_card")
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF09392B),
-                            Color(0xFF0E5B44),
-                            Color(0xFF146E53)
-                        )
-                    )
-                )
-                .padding(horizontal = 20.dp, vertical = 20.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = CircleShape,
-                            color = GoldSecondary.copy(alpha = 0.2f),
-                            modifier = Modifier
-                                .size(48.dp)
-                                .border(1.5.dp, GoldSecondary, CircleShape)
+            // Left greeting and identity
+            Column {
+                Text(
+                    text = "As-salamu alaykum,",
+                    color = BrandSecondaryText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Normal
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = userProfile.name,
+                        color = BrandPrimaryText,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(11.dp),
+                        color = BrandSoftGreenSurface,
+                        modifier = Modifier.height(22.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = userProfile.name.take(1).uppercase(),
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
                             Text(
-                                text = "Assalamu Alaikum,",
-                                color = Color(0xFFC3EEDF),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Normal
-                            )
-                            Text(
-                                text = userProfile.name,
-                                color = Color.White,
-                                fontSize = 18.sp,
+                                text = userProfile.role.name,
+                                color = BrandPrimaryEmerald,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
+                }
+            }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Role badge (Secure Non-Clickable Display)
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color.White.copy(alpha = 0.15f),
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                        ) {
-                            Text(
-                                text = userProfile.role.name,
-                                color = Color(0xFFFFE082),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = onNotificationsClick,
-                            modifier = Modifier.testTag("notification_button")
-                        ) {
-                            BadgedBox(
-                                badge = {
-                                    if (unreadNotificationCount > 0) {
-                                        Badge(containerColor = Color(0xFFE53935)) {
-                                            Text("$unreadNotificationCount", color = Color.White)
-                                        }
-                                    }
+            // Right notification and online avatar
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 40x40 Touch target, 20x20 bell
+                IconButton(
+                    onClick = onNotificationsClick,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .testTag("notification_button")
+                ) {
+                    BadgedBox(
+                        badge = {
+                            if (unreadNotificationCount > 0) {
+                                Badge(
+                                    containerColor = BrandLiveRed,
+                                    modifier = Modifier.size(16.dp)
+                                ) {
+                                    Text(
+                                        "$unreadNotificationCount",
+                                        color = Color.White,
+                                        fontSize = 9.sp
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Notifications,
-                                    contentDescription = "Notifications",
-                                    tint = Color.White
-                                )
                             }
                         }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                            tint = BrandPrimaryEmerald,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Islamic quote / Bismillah banner
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color.Black.copy(alpha = 0.2f),
-                    modifier = Modifier.fillMaxWidth()
+                // 36x36 Avatar with 8x8 online dot
+                Box(
+                    modifier = Modifier.size(36.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = CircleShape,
+                        color = BrandPrimaryEmerald,
+                        modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = Color(0xFFFFD54F),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "“The best of you are those who learn the Quran and teach it.”",
-                            color = Color(0xFFE8F5E9),
-                            fontSize = 12.sp,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = userProfile.name.take(1).uppercase(),
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp
+                            )
+                        }
+                    }
+                    // 8x8 online dot
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .align(Alignment.BottomEnd)
+                            .background(BrandPageBackground, CircleShape)
+                            .padding(1.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(BrandSuccess, CircleShape)
                         )
                     }
                 }
@@ -230,169 +218,153 @@ fun NextClassCard(
     modifier: Modifier = Modifier
 ) {
     val isLive = quranClass.status == ClassStatus.LIVE_NOW
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
-    )
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .testTag("next_class_card"),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, M3SageBorder)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = BrandDarkEmerald),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            // Emerald Accent Bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .background(M3EmeraldPrimary)
-            )
-            Column(modifier = Modifier.padding(20.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left Content
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "NEXT SCHEDULED CLASS",
-                        color = M3SlateText,
-                        fontSize = 11.sp,
+                        text = if (isLive) "● LIVE NOW" else "NEXT CLASS",
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
+                        color = if (isLive) BrandGold else BrandMint,
                         letterSpacing = 1.sp
                     )
 
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = quranClass.title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Topic Pill
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isLive) Color(0xFFFFEBEE) else M3MintContainer,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isLive) Color(0xFFE53935) else M3MintSelected
-                        )
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color.White.copy(alpha = 0.12f),
+                        modifier = Modifier.height(24.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp)
                         ) {
-                            if (isLive) {
-                                Icon(
-                                    imageVector = Icons.Default.FiberManualRecord,
-                                    contentDescription = null,
-                                    tint = Color(0xFFE53935),
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .scale(scale)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = quranClass.surahTopic,
+                                fontSize = 10.sp,
+                                color = Color.White,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Schedule
+                    Text(
+                        text = "Today · ${quranClass.startTime} · ${quranClass.durationMinutes} min",
+                        fontSize = 11.sp,
+                        color = BrandMint
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Teacher Row
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.15f),
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = "LIVE NOW",
-                                    color = Color(0xFFE53935),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = null,
-                                    tint = M3EmeraldPrimary,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "${quranClass.date} • ${quranClass.startTime}",
-                                    color = M3EmeraldPrimary,
+                                    text = quranClass.teacherName.take(1).uppercase(),
+                                    color = Color.White,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = quranClass.teacherName,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Senior Tajweed Teacher",
+                                fontSize = 9.sp,
+                                color = BrandMint
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // CTA Button
+                    Button(
+                        onClick = onJoinClick,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = BrandPrimaryEmerald
+                        ),
+                        modifier = Modifier
+                            .height(34.dp)
+                            .testTag("join_class_button")
+                    ) {
+                        Text(
+                            text = if (isLive) "Resume Live Class →" else "Join Classroom →",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(
-                    text = quranClass.title,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = M3CharcoalText
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Bento-style Details Grid
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = M3MintSubtle,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, M3SageBorder),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = M3EmeraldPrimary, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Teacher: ${quranClass.teacherName}", fontSize = 13.sp, color = M3CharcoalText, fontWeight = FontWeight.Medium)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = M3EmeraldPrimary, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Student: ${quranClass.studentName}", fontSize = 13.sp, color = M3CharcoalText, fontWeight = FontWeight.Medium)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Book, contentDescription = null, tint = M3EmeraldPrimary, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Topic: ${quranClass.surahTopic}", fontSize = 13.sp, color = M3SlateText)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                val buttonText = when (userRole) {
-                    com.example.data.model.UserRole.TEACHER -> if (isLive) "RESUME CLASS (${quranClass.studentName})" else "START CLASS & RING: ${quranClass.studentName.uppercase()}"
-                    com.example.data.model.UserRole.ADMIN -> "VIEW DETAILS (${quranClass.studentName})"
-                    com.example.data.model.UserRole.STUDENT -> if (isLive) "JOIN LIVE CLASS NOW" else "ENTER CLASSROOM (${quranClass.teacherName})"
-                }
-
-                Button(
-                    onClick = onJoinClick,
+                // Right Decorative Quran / Atmosphere Graphic
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .testTag("join_class_button"),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isLive) Color(0xFF0E5B44) else M3EmeraldPrimary
-                    )
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(20.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Videocam,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = buttonText,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        letterSpacing = 0.5.sp
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.06f),
+                        modifier = Modifier.size(90.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.MenuBook,
+                                contentDescription = null,
+                                tint = BrandGold.copy(alpha = 0.7f),
+                                modifier = Modifier.size(46.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -408,125 +380,162 @@ fun LearningProgressCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("learning_progress_card"),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = BrandSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, M3SageBorder)
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandDivider)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(16.dp)
         ) {
+            // Header
+            Text(
+                text = "Learning Progress",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = BrandPrimaryText
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Three Metrics
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.MenuBook,
-                        contentDescription = null,
-                        tint = M3EmeraldPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                // Metric 1: Attendance Progress Ring
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier.size(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            progress = { 0.96f },
+                            color = BrandPrimaryEmerald,
+                            trackColor = BrandSoftSurface,
+                            strokeWidth = 3.5.dp,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Text(
+                            text = "96%",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandPrimaryText
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Quran Learning Progress",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = M3CharcoalText
+                        text = "Attendance",
+                        fontSize = 10.sp,
+                        color = BrandSecondaryText
                     )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = M3MintContainer,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, M3MintSelected)
+                // Metric 2: Hifz Progress Indicator
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
                 ) {
+                    Box(
+                        modifier = Modifier.size(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            progress = { 0.10f },
+                            color = BrandDarkGold,
+                            trackColor = BrandSoftSurface,
+                            strokeWidth = 3.5.dp,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Text(
+                            text = "${userProfile.completedJuzCount}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandPrimaryText
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = userProfile.attendanceRate + " Attendance",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = M3EmeraldPrimary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        text = "Hifz Progress",
+                        fontSize = 10.sp,
+                        color = BrandSecondaryText
+                    )
+                }
+
+                // Metric 3: Current Level Pill
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = BrandSoftGreenSurface,
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 10.dp)
+                        ) {
+                            Text(
+                                text = userProfile.tajweedLevel,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BrandPrimaryEmerald
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Current Level",
+                        fontSize = 10.sp,
+                        color = BrandSecondaryText
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
+            // Milestone Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                ProgressMetricItem(
-                    label = "Sabaq (Lesson)",
-                    value = userProfile.currentSurah,
-                    subtext = "Ayah ${userProfile.currentAyah}",
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = "Surah milestone",
+                    fontSize = 9.sp,
+                    color = BrandSecondaryText
                 )
-                Spacer(modifier = Modifier.width(10.dp))
-                ProgressMetricItem(
-                    label = "Sabaqi (Recent)",
-                    value = "${userProfile.completedJuzCount} Juz",
-                    subtext = "Memorized",
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                ProgressMetricItem(
-                    label = "Manzil (Revision)",
-                    value = "Level II",
-                    subtext = "Ahkam Rules",
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = "60%",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = BrandPrimaryEmerald
                 )
             }
-        }
-    }
-}
 
-@Composable
-private fun ProgressMetricItem(
-    label: String,
-    value: String,
-    subtext: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = M3MintSubtle,
-        border = androidx.compose.foundation.BorderStroke(1.dp, M3SageBorder)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = label,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = M3SlateText,
-                maxLines = 1
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = value,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = M3CharcoalText,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = subtext,
-                fontSize = 10.sp,
-                color = M3SlateText
-            )
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Progress Bar (Height 6, Track #E7ECE8, Fill #0E5B44, Radius 3)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .background(Color(0xFFE7ECE8), RoundedCornerShape(3.dp))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .height(6.dp)
+                        .background(BrandPrimaryEmerald, RoundedCornerShape(3.dp))
+                )
+            }
         }
     }
 }
@@ -546,121 +555,114 @@ fun ClassListItem(
             .fillMaxWidth()
             .testTag("class_item_${quranClass.id}")
             .clickable { onCardClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = BrandSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandDivider)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Date Block (48x62, radius 14, background #EAF4EE)
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = BrandSoftGreenSurface,
+                modifier = Modifier.size(width = 48.dp, height = 62.dp)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = when (quranClass.status) {
-                        ClassStatus.LIVE_NOW -> Color(0xFFFFEBEE)
-                        ClassStatus.SCHEDULED -> Color(0xFFE3F2FD)
-                        ClassStatus.COMPLETED -> Color(0xFFE8F5E9)
-                        ClassStatus.CANCELLED -> Color(0xFFEEEEEE)
-                    }
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = when (quranClass.status) {
-                            ClassStatus.LIVE_NOW -> "● LIVE"
-                            ClassStatus.SCHEDULED -> "${quranClass.date} • ${quranClass.startTime}"
-                            ClassStatus.COMPLETED -> "Completed"
-                            ClassStatus.CANCELLED -> "Cancelled"
-                        },
-                        fontSize = 11.sp,
+                        text = "MON",
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        color = when (quranClass.status) {
-                            ClassStatus.LIVE_NOW -> Color(0xFFE53935)
-                            ClassStatus.SCHEDULED -> Color(0xFF1976D2)
-                            ClassStatus.COMPLETED -> Color(0xFF2E7D32)
-                            ClassStatus.CANCELLED -> Color(0xFF757575)
-                        },
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        color = BrandPrimaryEmerald
+                    )
+                    Text(
+                        text = "28",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandPrimaryEmerald
                     )
                 }
+            }
 
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Middle Content
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${quranClass.durationMinutes} mins",
-                    fontSize = 12.sp,
-                    color = Color(0xFF757575),
-                    fontWeight = FontWeight.Medium
+                    text = quranClass.title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = BrandPrimaryText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = quranClass.teacherName,
+                    fontSize = 10.sp,
+                    color = BrandSecondaryText
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${quranClass.startTime} · ${quranClass.durationMinutes} min",
+                    fontSize = 10.sp,
+                    color = BrandSecondaryText
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            Text(
-                text = quranClass.title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF191C1B)
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "Teacher: ${quranClass.teacherName} • Student: ${quranClass.studentName}",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF454B46)
-            )
-
-            Text(
-                text = "Topic: ${quranClass.surahTopic}",
-                fontSize = 12.sp,
-                color = Color(0xFF757575)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+            // Status Chip & Chevron
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
             ) {
-                if (quranClass.canJoin) {
-                    Button(
-                        onClick = onJoinClick,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-                        modifier = Modifier.testTag("join_button_${quranClass.id}")
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = when (quranClass.status) {
+                        ClassStatus.LIVE_NOW -> Color(0xFFFFEBEE)
+                        ClassStatus.COMPLETED -> Color(0xFFE8F5E9)
+                        else -> BrandSoftGreenSurface
+                    },
+                    modifier = Modifier.height(24.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Videocam,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isLive) "Join Live" else "Join",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
+                            text = when (quranClass.status) {
+                                ClassStatus.LIVE_NOW -> "Live"
+                                ClassStatus.COMPLETED -> "Completed"
+                                else -> "Upcoming"
+                            },
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = when (quranClass.status) {
+                                ClassStatus.LIVE_NOW -> BrandDanger
+                                ClassStatus.COMPLETED -> BrandSuccess
+                                else -> BrandPrimaryEmerald
+                            }
                         )
-                    }
-                } else if (isCompleted) {
-                    OutlinedButton(
-                        onClick = onCardClick,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = Color(0xFF2E7D32),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("View Feedback", fontSize = 12.sp, color = Color(0xFF2E7D32))
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = BrandMutedText,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }
@@ -676,62 +678,42 @@ fun MessageBubble(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
     ) {
-        if (!isMe) {
-            Surface(
-                shape = CircleShape,
-                color = Color(0xFFF1F5F9),
-                modifier = Modifier
-                    .size(34.dp)
-                    .align(Alignment.Bottom)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = message.senderName.take(1).uppercase(),
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A),
-                        fontSize = 13.sp
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-
         Surface(
-            shape = RoundedCornerShape(
-                topStart = 18.dp,
-                topEnd = 18.dp,
-                bottomStart = if (isMe) 18.dp else 4.dp,
-                bottomEnd = if (isMe) 4.dp else 18.dp
-            ),
-            color = if (isMe) Color(0xFF059669) else Color(0xFFF1F5F9),
-            modifier = Modifier.widthIn(max = 290.dp)
+            shape = RoundedCornerShape(18.dp),
+            color = if (isMe) BrandPrimaryEmerald else BrandSurface,
+            shadowElevation = if (isMe) 0.dp else 1.dp,
+            modifier = Modifier.widthIn(max = 268.dp)
         ) {
-            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                if (!isMe) {
-                    Text(
-                        text = message.senderName,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF059669)
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                }
+            Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     text = message.text,
-                    fontSize = 14.sp,
-                    color = if (isMe) Color.White else Color(0xFF0F172A),
-                    lineHeight = 19.sp
+                    fontSize = 13.sp,
+                    color = if (isMe) Color.White else BrandPrimaryText,
+                    lineHeight = 18.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = message.timestamp,
-                    fontSize = 10.sp,
-                    color = if (isMe) Color.White.copy(alpha = 0.75f) else Color(0xFF94A3B8),
-                    modifier = Modifier.align(Alignment.End)
-                )
+                Row(
+                    modifier = Modifier.align(Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = message.timestamp,
+                        fontSize = 9.sp,
+                        color = if (isMe) BrandMint else BrandSecondaryText
+                    )
+                    if (isMe) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = BrandMint,
+                            modifier = Modifier.size(11.dp)
+                        )
+                    }
+                }
             }
         }
     }

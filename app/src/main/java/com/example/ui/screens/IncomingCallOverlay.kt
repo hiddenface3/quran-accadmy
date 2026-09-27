@@ -27,9 +27,8 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.PhoneInTalk
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,8 +45,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.QuranClass
-import com.example.ui.theme.EmeraldPrimary
-import com.example.ui.theme.GoldSecondary
+import com.example.ui.theme.BrandDanger
+import com.example.ui.theme.BrandDarkEmerald
+import com.example.ui.theme.BrandDarkGold
+import com.example.ui.theme.BrandGold
+import com.example.ui.theme.BrandMint
+import com.example.ui.theme.BrandPrimaryEmerald
+import com.example.ui.theme.BrandSuccess
 
 @Composable
 fun IncomingCallOverlay(
@@ -59,7 +63,7 @@ fun IncomingCallOverlay(
     val infiniteTransition = rememberInfiniteTransition(label = "ringPulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.95f,
-        targetValue = 1.35f,
+        targetValue = 1.25f,
         animationSpec = infiniteRepeatable(
             animation = tween(900, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -67,15 +71,15 @@ fun IncomingCallOverlay(
         label = "pulse"
     )
 
+    // 09A. FULL BACKGROUND (#09392B -> #071F18)
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF06251A),
-                        Color(0xFF0E4332),
-                        Color(0xFF081C15)
+                        BrandDarkEmerald,
+                        Color(0xFF071F18)
                     )
                 )
             )
@@ -85,42 +89,72 @@ fun IncomingCallOverlay(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .padding(horizontal = 24.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top Status
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 28.dp)
+            // 09B. TOP STATUS PILL (h = 38dp, radius: 19dp, background: rgba(255,255,255,0.10), border: 1dp #C89B3C, gold text)
+            Surface(
+                shape = RoundedCornerShape(19.dp),
+                color = Color.White.copy(alpha = 0.10f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BrandDarkGold),
+                modifier = Modifier.height(38.dp)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.White.copy(alpha = 0.15f)
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Icon(
+                        imageVector = Icons.Default.PhoneInTalk,
+                        contentDescription = null,
+                        tint = BrandGold,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "LIVE QURAN CLASS CALLING",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGold,
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
+
+            // 09C & 09D. CALLER AVATAR & NAME
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 09C. CALLER AVATAR (Outer aura 170x170 animated pulse, inner 112x112 circle, border 3dp #FFD54F, bg #0E5B44)
+                Box(contentAlignment = Alignment.Center) {
+                    Surface(
+                        shape = CircleShape,
+                        color = BrandSuccess.copy(alpha = 0.20f),
+                        modifier = Modifier
+                            .size(170.dp)
+                            .scale(pulseScale)
+                    ) {}
+
+                    Surface(
+                        shape = CircleShape,
+                        color = BrandPrimaryEmerald,
+                        border = androidx.compose.foundation.BorderStroke(3.dp, BrandGold),
+                        modifier = Modifier.size(112.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.PhoneInTalk,
-                            contentDescription = null,
-                            tint = Color(0xFFFFD54F),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "LIVE QURAN CLASS CALLING",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFFD54F),
-                            letterSpacing = 1.sp
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = quranClass.teacherName.take(1).uppercase(),
+                                fontSize = 46.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BrandGold
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
+                // 09D. CALLER NAME & TITLE (26sp Bold white, 12sp #C5EEDB)
                 Text(
                     text = quranClass.teacherName,
                     fontSize = 26.sp,
@@ -129,110 +163,107 @@ fun IncomingCallOverlay(
                     textAlign = TextAlign.Center
                 )
 
+                Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
                     text = quranClass.teacherTitle,
-                    fontSize = 14.sp,
-                    color = Color(0xFFC5EEDB),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp)
+                    fontSize = 12.sp,
+                    color = BrandMint,
+                    textAlign = TextAlign.Center
                 )
-            }
 
-            // Center Ringing Avatar & Topic Card
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(contentAlignment = Alignment.Center) {
-                    // Pulsing outer ripple
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFF2E7D32).copy(alpha = 0.25f),
-                        modifier = Modifier
-                            .size(160.dp)
-                            .scale(pulseScale)
-                    ) {}
+                Spacer(modifier = Modifier.height(24.dp))
 
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFF1B5E20).copy(alpha = 0.45f),
-                        modifier = Modifier
-                            .size(130.dp)
-                    ) {}
-
-                    // Avatar
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFF0A3C2B),
-                        border = androidx.compose.foundation.BorderStroke(3.dp, GoldSecondary),
-                        modifier = Modifier.size(100.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = quranClass.teacherName.take(1).uppercase(),
-                                fontSize = 42.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFFFD54F)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f))
+                // 09E. CLASS DETAILS BENTO (radius: 22dp, background: rgba(255,255,255,0.10))
+                Surface(
+                    shape = RoundedCornerShape(22.dp),
+                    color = Color.White.copy(alpha = 0.10f),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(18.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = quranClass.title,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = Color.White,
                             textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Book,
                                 contentDescription = null,
-                                tint = GoldSecondary,
-                                modifier = Modifier.size(14.dp)
+                                tint = BrandGold,
+                                modifier = Modifier.size(15.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = quranClass.surahTopic,
                                 fontSize = 13.sp,
-                                color = Color(0xFFE0E0E0)
+                                color = Color.White.copy(alpha = 0.9f)
                             )
                         }
-                        Text(
-                            text = "Duration: ${quranClass.durationMinutes} minutes",
-                            fontSize = 11.sp,
-                            color = Color(0xFFB0BEC5),
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${quranClass.durationMinutes} minutes",
+                                fontSize = 11.sp,
+                                color = BrandMint
+                            )
+
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color.White.copy(alpha = 0.15f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Security,
+                                        contentDescription = null,
+                                        tint = BrandMint,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "LiveKit HD WebRTC",
+                                        fontSize = 10.sp,
+                                        color = BrandMint,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            // Bottom Actions: Decline & Accept Call
+            // 09F. ACTION BUTTONS (Decline: circle 68x68 #D32F2F; Accept: circle 68x68 #2E7D32 with emerald aura)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 32.dp),
+                    .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Decline Button
+                // DECLINE BUTTON
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Surface(
                         shape = CircleShape,
-                        color = Color(0xFFD32F2F),
+                        color = BrandDanger,
                         shadowElevation = 6.dp,
                         modifier = Modifier
                             .size(68.dp)
@@ -242,9 +273,9 @@ fun IncomingCallOverlay(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.CallEnd,
-                                contentDescription = "Decline Call",
+                                contentDescription = "Decline",
                                 tint = Color.White,
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(28.dp)
                             )
                         }
                     }
@@ -253,38 +284,46 @@ fun IncomingCallOverlay(
                         text = "Decline",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFFEF9A9A)
+                        color = Color.White
                     )
                 }
 
-                // Accept Button
+                // ACCEPT BUTTON
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFF2E7D32),
-                        border = androidx.compose.foundation.BorderStroke(2.dp, Color.White),
-                        shadowElevation = 8.dp,
-                        modifier = Modifier
-                            .size(76.dp)
-                            .scale(pulseScale)
-                            .clickable { onAccept() }
-                            .testTag("accept_call_button")
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Videocam,
-                                contentDescription = "Accept Call",
-                                tint = Color.White,
-                                modifier = Modifier.size(38.dp)
-                            )
+                    Box(contentAlignment = Alignment.Center) {
+                        Surface(
+                            shape = CircleShape,
+                            color = BrandSuccess.copy(alpha = 0.35f),
+                            modifier = Modifier
+                                .size(88.dp)
+                                .scale(pulseScale)
+                        ) {}
+
+                        Surface(
+                            shape = CircleShape,
+                            color = BrandSuccess,
+                            shadowElevation = 8.dp,
+                            modifier = Modifier
+                                .size(68.dp)
+                                .clickable { onAccept() }
+                                .testTag("accept_call_button")
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Videocam,
+                                    contentDescription = "Accept Call",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Accept & Join",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFA5D6A7)
+                        text = "Accept Call",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
                     )
                 }
             }

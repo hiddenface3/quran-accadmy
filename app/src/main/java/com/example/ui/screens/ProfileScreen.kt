@@ -83,256 +83,321 @@ fun ProfileScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFFAF9F5))
+            .background(com.example.ui.theme.BrandPageBackground)
             .verticalScroll(scrollState)
     ) {
-        // Profile Header
-        Box(
+        // 07A. Header
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF09392B),
-                            Color(0xFF0E5B44)
-                        )
-                    )
-                )
-                .padding(24.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White,
-                    shadowElevation = 4.dp,
-                    modifier = Modifier
-                        .size(80.dp)
-                        .border(2.dp, GoldSecondary, CircleShape)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = currentUser.name.take(1).uppercase(),
-                            color = EmeraldPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 32.sp
-                        )
+            Text(
+                text = "My Profile",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = com.example.ui.theme.BrandPrimaryText
+            )
+
+            // Settings 40x40 touch target
+            IconButton(
+                onClick = {
+                    if (currentUser.role == UserRole.ADMIN) {
+                        showBackendConfigDialog = true
                     }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = currentUser.name,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = com.example.ui.theme.BrandPrimaryEmerald,
+                    modifier = Modifier.size(20.dp)
                 )
+            }
+        }
 
-                Text(
-                    text = currentUser.email,
-                    fontSize = 13.sp,
-                    color = Color(0xFFC5EEDB)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color.White.copy(alpha = 0.2f)
+        // 07B. Profile Hero Bento
+        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BrandDivider),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "ROLE: ${currentUser.role.name}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFD54F),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
+                    // 84x84 Avatar with 3dp #C5EEDB border
+                    Surface(
+                        shape = CircleShape,
+                        color = com.example.ui.theme.BrandPrimaryEmerald,
+                        modifier = Modifier
+                            .size(84.dp)
+                            .border(3.dp, com.example.ui.theme.BrandMint, CircleShape)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = currentUser.name.take(1).uppercase(),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 32.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column {
+                        Text(
+                            text = currentUser.name,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = com.example.ui.theme.BrandPrimaryText
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = currentUser.email,
+                            fontSize = 10.sp,
+                            color = com.example.ui.theme.BrandSecondaryText
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = com.example.ui.theme.BrandSoftGreenSurface,
+                            modifier = Modifier.height(24.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(horizontal = 10.dp)
+                            ) {
+                                Text(
+                                    text = currentUser.role.name,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = com.example.ui.theme.BrandPrimaryEmerald
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .background(com.example.ui.theme.BrandSuccess, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "Active ${currentUser.role.name.lowercase()}",
+                                fontSize = 10.sp,
+                                color = com.example.ui.theme.BrandSuccess,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
-        // Academy Details Card
+        // 07C. Academy Enrollment Bento
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            Text(
+                text = "Academy Enrollment",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = com.example.ui.theme.BrandPrimaryText
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("academy_details_card"),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BrandDivider),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "Academy Enrollment",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF191C1B)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     ProfileItemRow(
                         icon = Icons.Default.School,
                         label = "Assigned Teacher",
                         value = currentUser.assignedTeacherName
                     )
+                    ProfileDivider()
                     ProfileItemRow(
                         icon = Icons.Default.MilitaryTech,
                         label = "Tajweed Level",
                         value = currentUser.tajweedLevel
                     )
+                    ProfileDivider()
                     ProfileItemRow(
                         icon = Icons.Default.Book,
-                        label = "Memorization (Hifz)",
+                        label = "Memorization",
                         value = "${currentUser.completedJuzCount} Juz completed"
                     )
+                    ProfileDivider()
                     ProfileItemRow(
                         icon = Icons.Default.CheckCircle,
-                        label = "Attendance Rating",
-                        value = currentUser.attendanceRate
+                        label = "Attendance",
+                        value = "${currentUser.attendanceRate} · Excellent"
                     )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
-            // Recent Attendance / Evaluation History
+        // 07D. Recent Attendance & Grades Bento
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            Text(
+                text = "Recent Attendance & Grades",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = com.example.ui.theme.BrandPrimaryText
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BrandDivider),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "Recent Attendance & Grades",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF191C1B)
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    attendance.forEach { item ->
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Surah Al-Mulk Tajweed Rules",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = com.example.ui.theme.BrandPrimaryText
+                        )
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFFFAF9F5)
+                            shape = RoundedCornerShape(8.dp),
+                            color = com.example.ui.theme.BrandSoftGreenSurface,
+                            modifier = Modifier.height(22.dp)
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = item.className,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = Color(0xFF191C1B)
-                                    )
-                                    Text(
-                                        text = item.grade,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF2E7D32)
-                                    )
-                                }
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            ) {
                                 Text(
-                                    text = "${item.date} • ${item.durationMinutes} mins • By ${item.teacherName}",
+                                    text = "A+",
                                     fontSize = 11.sp,
-                                    color = Color(0xFF757575)
-                                )
-                                Text(
-                                    text = item.notes,
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF616161),
-                                    modifier = Modifier.padding(top = 2.dp)
+                                    fontWeight = FontWeight.Bold,
+                                    color = com.example.ui.theme.BrandSuccess
                                 )
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Yesterday · 45 mins By Sheikh Abdullah",
+                        fontSize = 10.sp,
+                        color = com.example.ui.theme.BrandSecondaryText
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = com.example.ui.theme.BrandSoftSurface,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "“Makharij of throat letters improved; practice Qalqalah.”",
+                            fontSize = 11.sp,
+                            color = com.example.ui.theme.BrandSecondaryText,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Backend & LiveKit Status (Admin Only)
-            if (currentUser.role == UserRole.ADMIN) {
+        // 07E. Admin-Only Backend Card
+        if (currentUser.role == UserRole.ADMIN) {
+            Spacer(modifier = Modifier.height(18.dp))
+            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showBackendConfigDialog = true },
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F1)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BrandDivider),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.CloudDone,
-                                    contentDescription = null,
-                                    tint = EmeraldPrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Backend Services",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF191C1B)
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = com.example.ui.theme.BrandPrimaryText
                                 )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = com.example.ui.theme.BrandSoftGreenSurface
+                                ) {
+                                    Text(
+                                        text = "Active",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = com.example.ui.theme.BrandPrimaryEmerald,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
-
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFE8F5E9)
-                            ) {
-                                Text(
-                                    text = "Active",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF2E7D32),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Supabase · LiveKit Cloud",
+                                fontSize = 11.sp,
+                                color = com.example.ui.theme.BrandSecondaryText
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Text(
-                            text = "• Supabase Backend: ${SupabaseConfig.projectUrl}",
-                            fontSize = 11.sp,
-                            color = Color(0xFF616161)
-                        )
-                        Text(
-                            text = "• LiveKit Real-time: ${SupabaseConfig.liveKitServerUrl}",
-                            fontSize = 11.sp,
-                            color = Color(0xFF616161)
-                        )
-                        Text(
-                            text = "• Auth Token: Google / Supabase JWT Verified",
-                            fontSize = 11.sp,
-                            color = Color(0xFF616161)
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Configure",
+                            tint = com.example.ui.theme.BrandPrimaryEmerald,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(22.dp))
 
-            // Logout Button
+        // 07F. Logout Action (Outlined Red, Radius 16, Height 48)
+        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
             OutlinedButton(
                 onClick = {
                     viewModel.signOut()
@@ -342,17 +407,25 @@ fun ProfileScreen(
                     .fillMaxWidth()
                     .height(48.dp)
                     .testTag("logout_button"),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD32F2F))
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BrandDanger),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = com.example.ui.theme.BrandDanger)
             ) {
-                Icon(imageVector = Icons.Default.ExitToApp, contentDescription = null)
+                Icon(
+                    imageVector = Icons.Default.ExitToApp,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Log Out", fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Log Out",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
-
-            Spacer(modifier = Modifier.height(30.dp))
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 
     if (showBackendConfigDialog) {
@@ -532,14 +605,25 @@ private fun ProfileItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = EmeraldPrimary, modifier = Modifier.size(18.dp))
-        Spacer(modifier = Modifier.width(10.dp))
+        Icon(imageVector = icon, contentDescription = null, tint = com.example.ui.theme.BrandPrimaryEmerald, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(text = label, fontSize = 11.sp, color = Color(0xFF757575))
-            Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF191C1B))
+            Text(text = label, fontSize = 11.sp, color = com.example.ui.theme.BrandSecondaryText)
+            Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = com.example.ui.theme.BrandPrimaryText)
         }
     }
 }
+
+@Composable
+private fun ProfileDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(com.example.ui.theme.BrandDivider)
+    )
+}
+

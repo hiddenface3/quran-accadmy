@@ -78,7 +78,7 @@ fun ClassesScreen(
     var selectedClassForDetails by remember { mutableStateOf<QuranClass?>(null) }
     var showCreateClassDialog by remember { mutableStateOf(false) }
 
-    val tabs = listOf("Upcoming (${upcomingClasses.size})", "Previous (${previousClasses.size})", "All (${allClasses.size})")
+    val tabs = listOf("Upcoming", "Previous", "All")
 
     val displayedClasses = when (selectedTabIndex) {
         0 -> upcomingClasses
@@ -89,13 +89,12 @@ fun ClassesScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFFAF9F5))
+            .background(com.example.ui.theme.BrandPageBackground)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Screen Header
+            // 03A. Screen Header
             Surface(
-                color = Color.White,
-                shadowElevation = 2.dp,
+                color = com.example.ui.theme.BrandPageBackground,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp)) {
@@ -108,66 +107,76 @@ fun ClassesScreen(
                             Text(
                                 text = "Quran Classes",
                                 fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF191C1B)
+                                fontWeight = FontWeight.SemiBold,
+                                color = com.example.ui.theme.BrandPrimaryText
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = if (currentUser.role == UserRole.STUDENT) "Enrolled Curriculum & Sessions" else "Teaching Schedule & Lessons",
-                                fontSize = 12.sp,
-                                color = Color(0xFF757575)
+                                text = if (currentUser.role == UserRole.STUDENT) "Enrolled curriculum & sessions" else "Teaching schedule & lessons",
+                                fontSize = 11.sp,
+                                color = com.example.ui.theme.BrandSecondaryText
                             )
                         }
 
                         if (currentUser.role == UserRole.ADMIN) {
                             Button(
                                 onClick = { showCreateClassDialog = true },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
+                                shape = RoundedCornerShape(17.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = com.example.ui.theme.BrandPrimaryEmerald,
+                                    contentColor = Color.White
+                                ),
+                                modifier = Modifier
+                                    .size(width = 96.dp, height = 34.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("New Class", fontSize = 12.sp)
+                                Text(
+                                    text = "+ New Class",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Apple iOS-Style Segmented Pill Control
+                    // 03B. Segmented Control (Height 42, Radius 21, Background #ECEEE8)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFF1F5F9), RoundedCornerShape(24.dp))
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .height(42.dp)
+                            .background(Color(0xFFECEEE8), RoundedCornerShape(21.dp))
+                            .padding(3.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         tabs.forEachIndexed { index, title ->
                             val isSelected = selectedTabIndex == index
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(36.dp)
                                     .padding(horizontal = 2.dp),
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(17.dp),
                                 color = if (isSelected) Color.White else Color.Transparent,
-                                shadowElevation = if (isSelected) 2.dp else 0.dp,
+                                shadowElevation = if (isSelected) 1.5.dp else 0.dp,
                                 onClick = { selectedTabIndex = index }
                             ) {
                                 Box(
-                                    modifier = Modifier
-                                        .padding(vertical = 9.dp),
+                                    modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = title,
                                         fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) Color(0xFF0F172A) else Color(0xFF64748B)
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                        color = if (isSelected) com.example.ui.theme.BrandPrimaryEmerald else com.example.ui.theme.BrandSecondaryText
                                     )
                                 }
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
             }
 

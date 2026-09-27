@@ -72,18 +72,22 @@ fun HomeScreen(
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val nextClass by viewModel.nextClass.collectAsStateWithLifecycle()
     val upcomingClasses by viewModel.upcomingClasses.collectAsStateWithLifecycle()
-    val messages by viewModel.messages.collectAsStateWithLifecycle()
     val notifications by viewModel.notifications.collectAsStateWithLifecycle()
 
     var showNotificationsSheet by remember { mutableStateOf(false) }
     val unreadNotifs = notifications.count { !it.isRead }
 
-    Box(modifier = modifier.fillMaxSize().background(Color(0xFFFAF9F5))) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(com.example.ui.theme.BrandPageBackground)
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .testTag("home_screen_list")
         ) {
+            // 02A. Header
             item {
                 AcademyHeader(
                     userProfile = currentUser,
@@ -96,10 +100,10 @@ fun HomeScreen(
                 )
             }
 
+            // 02B. Next Class Bento Hero
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    // Next Class Hero Card
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                     nextClass?.let { next ->
                         NextClassCard(
                             quranClass = next,
@@ -120,8 +124,9 @@ fun HomeScreen(
                     } ?: run {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BrandDivider)
                         ) {
                             Column(
                                 modifier = Modifier.padding(20.dp),
@@ -129,60 +134,67 @@ fun HomeScreen(
                             ) {
                                 Text(
                                     text = "No classes scheduled for today.",
-                                    fontSize = 15.sp,
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF616161)
+                                    color = com.example.ui.theme.BrandSecondaryText
                                 )
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Learning Progress
-                    LearningProgressCard(userProfile = currentUser)
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Upcoming Classes Section Header
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Upcoming Classes",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF191C1B)
-                        )
-                        Text(
-                            text = "View All",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = EmeraldPrimary,
-                            modifier = Modifier
-                                .clickable { onNavigateToClasses() }
-                                .padding(4.dp)
-                        )
-                    }
                 }
             }
 
-            // List of upcoming classes
+            // 02C. Learning Progress Bento
+            item {
+                Spacer(modifier = Modifier.height(14.dp))
+                Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    LearningProgressCard(userProfile = currentUser)
+                }
+            }
+
+            // 02D. Upcoming Classes Header
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Upcoming Classes",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = com.example.ui.theme.BrandPrimaryText
+                    )
+                    Text(
+                        text = "See All",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = com.example.ui.theme.BrandPrimaryEmerald,
+                        modifier = Modifier
+                            .clickable { onNavigateToClasses() }
+                            .padding(4.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // 02E. Class Cards
             val otherUpcoming = upcomingClasses.filter { it.id != nextClass?.id }.take(2)
             if (otherUpcoming.isEmpty()) {
                 item {
                     Text(
                         text = "All scheduled sessions are up to date.",
-                        fontSize = 13.sp,
-                        color = Color(0xFF888888),
-                        modifier = Modifier.padding(start = 20.dp, top = 8.dp)
+                        fontSize = 12.sp,
+                        color = com.example.ui.theme.BrandMutedText,
+                        modifier = Modifier.padding(start = 20.dp, bottom = 16.dp)
                     )
                 }
             } else {
                 items(otherUpcoming) { item ->
-                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
                         ClassListItem(
                             quranClass = item,
                             onJoinClick = {
@@ -193,93 +205,12 @@ fun HomeScreen(
                         )
                     }
                 }
-            }
-
-            // Recent Messages Preview
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (currentUser.role == UserRole.TEACHER) "Student Messages" else "Teacher Messages",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF191C1B)
-                        )
-                        Text(
-                            text = "Open Chat",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = EmeraldPrimary,
-                            modifier = Modifier
-                                .clickable { onNavigateToMessages() }
-                                .padding(4.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    val lastTeacherMessage = messages.lastOrNull { !it.isFromMe }
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigateToMessages() }
-                            .testTag("recent_messages_preview_card"),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = EmeraldPrimary.copy(alpha = 0.15f),
-                                modifier = Modifier.size(44.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Chat,
-                                        contentDescription = null,
-                                        tint = EmeraldPrimary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = lastTeacherMessage?.senderName ?: "Sheikh Abdullah",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF191C1B)
-                                )
-                                Text(
-                                    text = lastTeacherMessage?.text ?: "No messages yet",
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF616161),
-                                    maxLines = 1
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = Color(0xFFBDBDBD)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
     }
-
 
     // Apple Notifications Bottom Sheet
     if (showNotificationsSheet) {
@@ -288,7 +219,7 @@ fun HomeScreen(
             onDismissRequest = { showNotificationsSheet = false },
             sheetState = sheetState,
             containerColor = Color.White,
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             dragHandle = {
                 Surface(
                     shape = RoundedCornerShape(2.dp),
@@ -310,30 +241,34 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Academy Notifications",
+                        text = "Notifications",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
+                        color = com.example.ui.theme.BrandPrimaryText
                     )
-                    IconButton(
-                        onClick = { showNotificationsSheet = false },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(Color(0xFFF1F5F9), CircleShape)
+                    TextButton(
+                        onClick = {
+                            viewModel.markNotificationsRead()
+                            showNotificationsSheet = false
+                        }
                     ) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
+                        Text(
+                            text = "Mark all read",
+                            fontSize = 12.sp,
+                            color = com.example.ui.theme.BrandPrimaryEmerald
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 notifications.forEach { notif ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BrandSoftSurface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BrandDivider),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Row(
@@ -342,15 +277,14 @@ fun HomeScreen(
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = Color(0xFFECFDF5),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFA7F3D0)),
-                                modifier = Modifier.size(38.dp)
+                                color = com.example.ui.theme.BrandSoftGreenSurface,
+                                modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Default.Notifications,
                                         contentDescription = null,
-                                        tint = Color(0xFF059669),
+                                        tint = com.example.ui.theme.BrandPrimaryEmerald,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -359,19 +293,19 @@ fun HomeScreen(
                             Column {
                                 Text(
                                     text = notif.title,
-                                    fontSize = 14.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF0F172A)
+                                    color = com.example.ui.theme.BrandPrimaryText
                                 )
                                 Text(
                                     text = notif.body,
                                     fontSize = 12.sp,
-                                    color = Color(0xFF64748B)
+                                    color = com.example.ui.theme.BrandSecondaryText
                                 )
                                 Text(
                                     text = notif.timestamp,
                                     fontSize = 10.sp,
-                                    color = Color(0xFF94A3B8),
+                                    color = com.example.ui.theme.BrandMutedText,
                                     modifier = Modifier.padding(top = 4.dp)
                                 )
                             }

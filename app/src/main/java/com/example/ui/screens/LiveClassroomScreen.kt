@@ -101,6 +101,14 @@ import com.example.data.model.QuranCurriculumData
 import com.example.data.model.UserRole
 import com.example.livekit.LiveKitConnectionState
 import com.example.ui.MainViewModel
+import com.example.ui.theme.BrandDanger
+import com.example.ui.theme.BrandDarkEmerald
+import com.example.ui.theme.BrandDarkGold
+import com.example.ui.theme.BrandDarkVideo
+import com.example.ui.theme.BrandGold
+import com.example.ui.theme.BrandMint
+import com.example.ui.theme.BrandPrimaryEmerald
+import com.example.ui.theme.BrandSuccess
 import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.theme.GoldSecondary
 
@@ -1532,8 +1540,9 @@ private fun QuranCompanionCard(
             .fillMaxWidth()
             .padding(16.dp)
             .testTag("quran_companion_card"),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF8)),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = BrandDarkEmerald.copy(alpha = 0.94f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandDarkGold),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
@@ -1550,73 +1559,68 @@ private fun QuranCompanionCard(
                     Icon(
                         imageVector = Icons.Default.Book,
                         contentDescription = null,
-                        tint = EmeraldPrimary,
+                        tint = BrandGold,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "${verse.surahName} • Ayah ${verse.ayahNumber}",
+                        text = "${verse.surahName} · Ayah ${verse.ayahNumber} of $totalCount",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = Color(0xFF191C1B)
+                        fontSize = 12.sp,
+                        color = BrandGold
                     )
                 }
 
-                IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF757575))
+                IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = BrandMint)
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
             // Arabic text in large, readable script
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xFFF9F7F1),
-                border = androidx.compose.foundation.BorderStroke(1.dp, GoldSecondary.copy(alpha = 0.4f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = verse.arabicText,
-                    fontSize = 24.sp,
-                    lineHeight = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF09392B),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
+            Text(
+                text = verse.arabicText,
+                fontSize = 24.sp,
+                lineHeight = 36.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = verse.transliteration,
                 fontSize = 12.sp,
                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                color = Color(0xFF616161)
+                color = BrandMint.copy(alpha = 0.8f)
             )
 
             Text(
                 text = verse.translation,
-                fontSize = 12.sp,
-                color = Color(0xFF191C1B),
+                fontSize = 13.sp,
+                color = BrandGold,
                 modifier = Modifier.padding(top = 2.dp)
             )
 
             if (verse.tajweedNote.isNotBlank()) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFE8F5E9),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White.copy(alpha = 0.08f),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp)
                 ) {
                     Text(
-                        text = "Tajweed Rule: ${verse.tajweedNote}",
+                        text = "Tajweed: ${verse.tajweedNote}",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF2E7D32),
-                        modifier = Modifier.padding(8.dp)
+                        color = BrandMint,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }
             }
@@ -1633,21 +1637,21 @@ private fun QuranCompanionCard(
                     onClick = onPrev,
                     enabled = currentIndex > 0
                 ) {
-                    Icon(imageVector = Icons.Default.NavigateBefore, contentDescription = "Prev")
+                    Icon(imageVector = Icons.Default.NavigateBefore, contentDescription = "Prev", tint = Color.White)
                 }
 
                 Text(
                     text = "Ayah ${currentIndex + 1} of $totalCount",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF757575)
+                    color = BrandMint
                 )
 
                 IconButton(
                     onClick = onNext,
                     enabled = currentIndex < totalCount - 1
                 ) {
-                    Icon(imageVector = Icons.Default.NavigateNext, contentDescription = "Next")
+                    Icon(imageVector = Icons.Default.NavigateNext, contentDescription = "Next", tint = Color.White)
                 }
             }
         }
@@ -1792,16 +1796,19 @@ private fun LiveClassControlBar(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        color = Color(0xFF141D19),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        shadowElevation = 12.dp,
-        modifier = modifier.fillMaxWidth()
+        color = Color.Black.copy(alpha = 0.65f),
+        shape = RoundedCornerShape(30.dp),
+        shadowElevation = 8.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .height(60.dp)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Mic Control
@@ -1849,39 +1856,28 @@ private fun LiveClassControlBar(
                 icon = Icons.Default.Chat,
                 label = "Chat",
                 isActive = isInClassChatOpen,
-                activeColor = EmeraldPrimary,
+                activeColor = BrandPrimaryEmerald,
                 inactiveColor = Color.White.copy(alpha = 0.2f),
                 onClick = onToggleChat
             )
 
-            // End Session Red Button
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            // End Session Red Button (44x44 circular red button)
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFFD32F2F),
                 modifier = Modifier
+                    .size(44.dp)
                     .clickable { onEndCall() }
                     .testTag("end_class_button")
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFFD32F2F),
-                    modifier = Modifier.size(46.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.CallEnd,
-                            contentDescription = "End Session",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.CallEnd,
+                        contentDescription = "End Session",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "End Session",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFF8A80)
-                )
             }
         }
     }

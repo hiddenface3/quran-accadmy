@@ -93,10 +93,9 @@ fun AdminScreen(
             .background(Color(0xFFFAF9F5))
             .testTag("admin_screen")
     ) {
-        // Admin Header Banner
+        // 08A. Admin Header Banner
         Surface(
-            color = Color.White,
-            shadowElevation = 2.dp,
+            color = com.example.ui.theme.BrandPageBackground,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -112,14 +111,14 @@ fun AdminScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
                             shape = CircleShape,
-                            color = GoldSecondary.copy(alpha = 0.15f),
-                            modifier = Modifier.size(44.dp)
+                            color = com.example.ui.theme.BrandSoftGreenSurface,
+                            modifier = Modifier.size(40.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.AdminPanelSettings,
                                     contentDescription = null,
-                                    tint = GoldSecondary,
+                                    tint = com.example.ui.theme.BrandPrimaryEmerald,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -128,61 +127,163 @@ fun AdminScreen(
                         Column {
                             Text(
                                 text = "Admin Control Center",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF191C1B)
+                                fontSize = 21.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = com.example.ui.theme.BrandPrimaryText
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Logged in: ${currentUser.email}",
+                                text = currentUser.email,
                                 fontSize = 11.sp,
-                                color = Color(0xFF616161)
+                                color = com.example.ui.theme.BrandSecondaryText
                             )
                         }
                     }
 
                     Button(
                         onClick = { showCreateClassDialog = true },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-                        modifier = Modifier.testTag("admin_schedule_class_button")
+                        shape = RoundedCornerShape(17.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = com.example.ui.theme.BrandPrimaryEmerald,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .size(width = 104.dp, height = 34.dp)
+                            .testTag("admin_schedule_class_button")
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Class", fontSize = 12.sp)
+                        Text(
+                            text = "+ Add Class",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Stats overview pills
-                Row(
+                // 08B. Stats Bento Card (Three Columns with subtle dividers)
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BrandDivider),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    AdminMetricChip(title = "Students", count = "${students.size}", modifier = Modifier.weight(1f))
-                    AdminMetricChip(title = "Teachers", count = "${teachers.size}", modifier = Modifier.weight(1f))
-                    AdminMetricChip(title = "Classes", count = "${classes.size}", modifier = Modifier.weight(1f))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(84.dp)
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "${students.size}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = com.example.ui.theme.BrandPrimaryText
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Students",
+                                fontSize = 10.sp,
+                                color = com.example.ui.theme.BrandSecondaryText
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(32.dp)
+                                .background(com.example.ui.theme.BrandDivider)
+                        )
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "${classes.size}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = com.example.ui.theme.BrandPrimaryText
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Classes",
+                                fontSize = 10.sp,
+                                color = com.example.ui.theme.BrandSecondaryText
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(32.dp)
+                                .background(com.example.ui.theme.BrandDivider)
+                        )
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "${teachers.size}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = com.example.ui.theme.BrandPrimaryText
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Teachers",
+                                fontSize = 10.sp,
+                                color = com.example.ui.theme.BrandSecondaryText
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                TabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = Color.Transparent,
-                    contentColor = EmeraldPrimary
+                // 08C. Admin Segmented Control (Height 42, Radius 21, Background #ECEEE8)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(42.dp)
+                        .background(Color(0xFFECEEE8), RoundedCornerShape(21.dp))
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTabIndex == index,
-                            onClick = { selectedTabIndex = index },
-                            text = {
+                    val adminTabs = listOf("Student Roster", "Class Operations", "Teachers")
+                    adminTabs.forEachIndexed { index, title ->
+                        val isSelected = selectedTabIndex == index
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .padding(horizontal = 2.dp),
+                            shape = RoundedCornerShape(17.dp),
+                            color = if (isSelected) Color.White else Color.Transparent,
+                            shadowElevation = if (isSelected) 1.5.dp else 0.dp,
+                            onClick = { selectedTabIndex = index }
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Text(
                                     text = title,
-                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 12.sp
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = if (isSelected) com.example.ui.theme.BrandPrimaryEmerald else com.example.ui.theme.BrandSecondaryText
                                 )
                             }
-                        )
+                        }
                     }
                 }
             }
