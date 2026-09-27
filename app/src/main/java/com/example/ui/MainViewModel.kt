@@ -314,6 +314,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun endSession(classId: String) {
+        val durationSec = callDurationSeconds.value
+        val minutes = maxOf(1, (durationSec / 60).toInt())
+        repository.recordSessionAttendance(classId, minutes)
         LiveCallEngine.stopSession(getApplication())
         repository.endSession(classId)
         leaveClass(markCompleted = true)

@@ -56,7 +56,12 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.filled.PictureInPicture
 import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.runtime.DisposableEffect
+import com.example.utils.AudioRoute
+import com.example.utils.AudioRoutingManager
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -203,6 +208,60 @@ fun LiveClassroomScreen(
 
     val verses = QuranCurriculumData.sampleVerses
     val currentVerse = verses.getOrElse(selectedVerseIndex) { verses.first() }
+
+    val isInPip by com.example.MainActivity.isInPipMode.collectAsStateWithLifecycle()
+    val currentAudioRoute by AudioRoutingManager.currentRoute.collectAsStateWithLifecycle()
+    val isBluetoothAvailable by AudioRoutingManager.isBluetoothAvailable.collectAsStateWithLifecycle()
+    var showAudioRouteDialog by remember { mutableStateOf(false) }
+    val syncedAyahIndex by com.example.livekit.LiveCallEngine.syncedAyahIndex.collectAsStateWithLifecycle()
+
+    // 1. Screen Sleep Guard (FLAG_KEEP_SCREEN_ON)
+    val activity = context as? android.app.Activity
+    DisposableEffect(Unit) {
+        activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    // 2. Real-Time Ayah Pointer Synchronization
+    LaunchedEffect(syncedAyahIndex) {
+        if (currentUser.role == UserRole.STUDENT && syncedAyahIndex in verses.indices) {
+            viewModel.selectVerse(syncedAyahIndex)
+        }
+    }
+
+    // 3. Picture-in-Picture Mode Minimal Rendering
+    if (isInPip) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
+            val pipTrack = if (isViewSwapped) localVideoTrack else remoteVideoTrack
+            if (pipTrack != null) {
+                LiveKitVideoRendererView(
+                    room = liveKitRoom,
+                    videoTrack = pipTrack,
+                    mirror = isViewSwapped,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Quran Class Live",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+        return
+    }
 
     Box(
         modifier = modifier
@@ -452,6 +511,40 @@ fun LiveClassroomScreen(
                     }
                 }
 
+                // Poor Network Warning Pill (Adaptive Network Drop Guard HUD)
+                AnimatedVisibility(
+                    visible = connectionQuality == "POOR" || connectionQuality == "VERY_POOR",
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically()
+                ) {
+                    Surface(
+                        color = Color(0xFFE65100),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Unstable network connection • Audio prioritized",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
                 // Middle Video Stage Area
                 Box(
                     modifier = Modifier
@@ -527,10 +620,22 @@ fun LiveClassroomScreen(
                                 currentIndex = selectedVerseIndex,
                                 totalCount = verses.size,
                                 onPrev = {
-                                    if (selectedVerseIndex > 0) viewModel.selectVerse(selectedVerseIndex - 1)
+                                    if (selectedVerseIndex > 0) {
+                                        val newIdx = selectedVerseIndex - 1
+                                        viewModel.selectVerse(newIdx)
+                                        if (currentUser.role == UserRole.TEACHER) {
+                                            com.example.livekit.LiveCallEngine.sendAyahSync(newIdx, -1)
+                                        }
+                                    }
                                 },
                                 onNext = {
-                                    if (selectedVerseIndex < verses.size - 1) viewModel.selectVerse(selectedVerseIndex + 1)
+                                    if (selectedVerseIndex < verses.size - 1) {
+                                        val newIdx = selectedVerseIndex + 1
+                                        viewModel.selectVerse(newIdx)
+                                        if (currentUser.role == UserRole.TEACHER) {
+                                            com.example.livekit.LiveCallEngine.sendAyahSync(newIdx, -1)
+                                        }
+                                    }
                                 },
                                 onClose = { viewModel.toggleQuranOverlay() }
                             )
@@ -553,14 +658,15 @@ fun LiveClassroomScreen(
                 LiveClassControlBar(
                     isMicMuted = isMicMuted,
                     isCameraOn = isCameraOn,
-                    isSpeakerOn = isSpeakerOn,
+                    currentAudioRoute = currentAudioRoute,
                     isHandRaised = isHandRaised,
                     isInClassChatOpen = isInClassChatOpen,
                     onToggleMic = { viewModel.toggleMic() },
                     onToggleCamera = { viewModel.toggleCamera() },
-                    onToggleSpeaker = { viewModel.toggleSpeaker() },
+                    onSelectAudioRoute = { showAudioRouteDialog = true },
                     onToggleHandRaise = { viewModel.toggleHandRaise() },
                     onToggleChat = { viewModel.toggleInClassChat() },
+                    onEnterPip = { (context as? com.example.MainActivity)?.enterPipMode() },
                     onEndCall = { showEndCallDialog = true }
                 )
             }
@@ -614,6 +720,117 @@ fun LiveClassroomScreen(
                     }
                 }
             }
+        )
+    }
+
+    // Interactive Audio Route Selector Dialog (Loudspeaker / Earpiece / Bluetooth)
+    if (showAudioRouteDialog) {
+        AlertDialog(
+            onDismissRequest = { showAudioRouteDialog = false },
+            title = {
+                Text(
+                    text = "Select Audio Output Device",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.White
+                )
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Loudspeaker
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                AudioRoutingManager.setAudioRoute(context, AudioRoute.SPEAKER)
+                                showAudioRouteDialog = false
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VolumeUp,
+                            contentDescription = null,
+                            tint = if (currentAudioRoute == AudioRoute.SPEAKER) GoldSecondary else Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Loudspeaker",
+                            color = if (currentAudioRoute == AudioRoute.SPEAKER) GoldSecondary else Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (currentAudioRoute == AudioRoute.SPEAKER) {
+                            Text("Active", color = GoldSecondary, fontSize = 12.sp)
+                        }
+                    }
+
+                    // Phone Earpiece
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                AudioRoutingManager.setAudioRoute(context, AudioRoute.EARPIECE)
+                                showAudioRouteDialog = false
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Headphones,
+                            contentDescription = null,
+                            tint = if (currentAudioRoute == AudioRoute.EARPIECE) GoldSecondary else Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Phone Earpiece",
+                            color = if (currentAudioRoute == AudioRoute.EARPIECE) GoldSecondary else Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        if (currentAudioRoute == AudioRoute.EARPIECE) {
+                            Text("Active", color = GoldSecondary, fontSize = 12.sp)
+                        }
+                    }
+
+                    // Bluetooth Headset (if paired/connected)
+                    if (isBluetoothAvailable) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    AudioRoutingManager.setAudioRoute(context, AudioRoute.BLUETOOTH)
+                                    showAudioRouteDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Headphones,
+                                contentDescription = null,
+                                tint = if (currentAudioRoute == AudioRoute.BLUETOOTH) GoldSecondary else Color.White
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Bluetooth Headset",
+                                color = if (currentAudioRoute == AudioRoute.BLUETOOTH) GoldSecondary else Color.White,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            if (currentAudioRoute == AudioRoute.BLUETOOTH) {
+                                Text("Active", color = GoldSecondary, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showAudioRouteDialog = false }) {
+                    Text("Close", color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF1B2621)
         )
     }
 }
@@ -1799,14 +2016,15 @@ private fun InClassChatSheet(
 private fun LiveClassControlBar(
     isMicMuted: Boolean,
     isCameraOn: Boolean,
-    isSpeakerOn: Boolean,
+    currentAudioRoute: AudioRoute,
     isHandRaised: Boolean,
     isInClassChatOpen: Boolean,
     onToggleMic: () -> Unit,
     onToggleCamera: () -> Unit,
-    onToggleSpeaker: () -> Unit,
+    onSelectAudioRoute: () -> Unit,
     onToggleHandRaise: () -> Unit,
     onToggleChat: () -> Unit,
+    onEnterPip: () -> Unit,
     onEndCall: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1846,14 +2064,32 @@ private fun LiveClassControlBar(
                 onClick = onToggleCamera
             )
 
-            // Speakerphone Control
+            // Audio Device Selector (Speaker / Ear / BT)
             ControlButton(
-                icon = if (isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.Headphones,
-                label = if (isSpeakerOn) "Speaker" else "Earpiece",
-                isActive = isSpeakerOn,
+                icon = when (currentAudioRoute) {
+                    AudioRoute.BLUETOOTH -> Icons.Default.Headphones
+                    AudioRoute.EARPIECE -> Icons.Default.Headphones
+                    AudioRoute.SPEAKER -> Icons.Default.VolumeUp
+                },
+                label = when (currentAudioRoute) {
+                    AudioRoute.BLUETOOTH -> "BT"
+                    AudioRoute.EARPIECE -> "Ear"
+                    AudioRoute.SPEAKER -> "Speaker"
+                },
+                isActive = true,
                 activeColor = Color.White.copy(alpha = 0.2f),
                 inactiveColor = Color.White.copy(alpha = 0.2f),
-                onClick = onToggleSpeaker
+                onClick = onSelectAudioRoute
+            )
+
+            // PiP Button
+            ControlButton(
+                icon = Icons.Default.PictureInPicture,
+                label = "PiP",
+                isActive = true,
+                activeColor = Color.White.copy(alpha = 0.2f),
+                inactiveColor = Color.White.copy(alpha = 0.2f),
+                onClick = onEnterPip
             )
 
             // Raise Hand

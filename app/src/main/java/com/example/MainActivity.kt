@@ -77,6 +77,36 @@ class MainActivity : ComponentActivity() {
         } catch (_: Exception) {}
     }
 
+    companion object {
+        val isInPipMode = kotlinx.coroutines.flow.MutableStateFlow(false)
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (LiveCallEngine.currentRoom != null) {
+            enterPipMode()
+        }
+    }
+
+    fun enterPipMode() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            try {
+                val params = android.app.PictureInPictureParams.Builder()
+                    .setAspectRatio(android.util.Rational(16, 9))
+                    .build()
+                enterPictureInPictureMode(params)
+            } catch (_: Exception) {}
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: android.content.res.Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isInPipMode.value = isInPictureInPictureMode
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         try {

@@ -66,6 +66,13 @@ object LiveCallEngine {
     private val _connectionQuality = MutableStateFlow("EXCELLENT")
     val connectionQuality: StateFlow<String> = _connectionQuality.asStateFlow()
 
+    // Real-Time Ayah & Word Pointer Synchronization
+    private val _syncedAyahIndex = MutableStateFlow(0)
+    val syncedAyahIndex: StateFlow<Int> = _syncedAyahIndex.asStateFlow()
+
+    private val _syncedWordIndex = MutableStateFlow(-1)
+    val syncedWordIndex: StateFlow<Int> = _syncedWordIndex.asStateFlow()
+
     // Room handle
     private var liveKitRoom: Room? = null
     val currentRoom: Room? get() = liveKitRoom
@@ -88,11 +95,9 @@ object LiveCallEngine {
     ) {
         stopSession(context)
 
-        // Audio Routing Manager
+        // Audio Routing Manager (Auto Bluetooth / Earpiece / Loudspeaker)
         try {
-            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
-            audioManager?.mode = android.media.AudioManager.MODE_IN_COMMUNICATION
-            audioManager?.isSpeakerphoneOn = true
+            com.example.utils.AudioRoutingManager.start(context)
         } catch (e: Exception) {
             Log.w(TAG, "Audio routing setup error: ${e.message}")
         }
@@ -256,11 +261,26 @@ object LiveCallEngine {
                                 }
                             }
                         }
+                        is RoomEvent.ActiveSpeakersChanged -> {
+                            val isLocalSpeaking = event.speakers.contains(room.localParticipant)
+                            val isRemoteSpeaking = event.speakers.any { it != room.localParticipant }
+                            _localAudioLevel.value = if (isLocalSpeaking) 0.85f else 0.0f
+                            _remoteAudioLevel.value = if (isRemoteSpeaking) 0.85f else 0.0f
+                            _remoteIsSpeaking.value = isRemoteSpeaking
+                        }
                         is RoomEvent.DataReceived -> {
                             try {
                                 val text = String(event.data, StandardCharsets.UTF_8)
                                 Log.i(TAG, "LiveKit DataChannel received: $text")
-                                onDataMessageReceived?.invoke(text)
+                                if (event.topic == "ayah_sync") {
+                                    val parts = text.split(":")
+                                    if (parts.size >= 2) {
+                                        _syncedAyahIndex.value = parts[0].toIntOrNull() ?: 0
+                                        _syncedWordIndex.value = parts[1].toIntOrNull() ?: -1
+                                    }
+                                } else {
+                                    onDataMessageReceived?.invoke(text)
+                                }
                             } catch (e: Exception) {
                                 Log.w(TAG, "Data parse error: ${e.message}")
                             }
@@ -305,8 +325,7 @@ object LiveCallEngine {
 
         try {
             if (context != null) {
-                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
-                audioManager?.mode = android.media.AudioManager.MODE_NORMAL
+                com.example.utils.AudioRoutingManager.stop(context)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Audio routing restore error: ${e.message}")
@@ -354,17 +373,30 @@ object LiveCallEngine {
      * Send in-call chat message instantly (<20ms) via LiveKit WebRTC DataChannel
      */
     fun sendInCallChatMessage(text: String): Boolean {
+        return sendDataPacket("chat", text)
+    }
+
+    /**
+     * Synchronize currently selected Ayah and Word across tutor and student screens (<20ms)
+     */
+    fun sendAyahSync(ayahIndex: Int, wordIndex: Int): Boolean {
+        _syncedAyahIndex.value = ayahIndex
+        _syncedWordIndex.value = wordIndex
+        return sendDataPacket("ayah_sync", "$ayahIndex:$wordIndex")
+    }
+
+    fun sendDataPacket(topic: String, message: String): Boolean {
         val room = liveKitRoom ?: return false
         return try {
             engineScope.launch {
                 room.localParticipant.publishData(
-                    data = text.toByteArray(StandardCharsets.UTF_8),
-                    topic = "chat"
+                    data = message.toByteArray(StandardCharsets.UTF_8),
+                    topic = topic
                 )
             }
             true
         } catch (e: Exception) {
-            Log.w(TAG, "DataChannel publish error: ${e.message}")
+            Log.w(TAG, "DataChannel publish error ($topic): ${e.message}")
             false
         }
     }

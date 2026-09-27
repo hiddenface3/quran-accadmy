@@ -378,6 +378,20 @@ class AcademyRepository {
         _notifications.value = listOf(notif) + _notifications.value
     }
 
+    fun recordSessionAttendance(classId: String, durationMinutes: Int, notes: String = "Live WebRTC Quran Tutoring Completed") {
+        val qClass = _classes.value.firstOrNull { it.id == classId } ?: return
+        val record = AttendanceRecord(
+            id = "att_${System.currentTimeMillis()}",
+            className = qClass.title,
+            teacherName = qClass.teacherName,
+            date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()),
+            durationMinutes = durationMinutes,
+            grade = "Mumtaz (Excellent)",
+            notes = notes
+        )
+        _attendance.value = listOf(record) + _attendance.value
+    }
+
     fun initiateClassCall(classId: String) {
         val qClass = _classes.value.firstOrNull { it.id == classId } ?: return
         // Mark as live
