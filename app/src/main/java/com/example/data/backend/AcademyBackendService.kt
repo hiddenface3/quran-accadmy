@@ -210,6 +210,9 @@ class AcademyBackendService {
                 put("avatar_url", user.avatarUrl)
                 put("assigned_teacher_name", user.assignedTeacherName)
                 put("tajweed_level", user.tajweedLevel)
+                if (user.fcmToken.isNotBlank()) {
+                    put("fcm_token", user.fcmToken)
+                }
             }
 
             val body = json.toString().toRequestBody(JSON_MEDIA)
@@ -242,6 +245,70 @@ class AcademyBackendService {
     }
 
     /**
+     * Update user's direct FCM Device Token in Supabase
+     */
+    suspend fun updateUserFcmToken(userId: String, token: String): Boolean = withContext(Dispatchers.IO) {
+        if (userId.isBlank() || token.isBlank()) return@withContext false
+        try {
+            val url = "${SupabaseConfig.projectUrl}/rest/v1/profiles?id=eq.$userId"
+            val json = JSONObject().apply {
+                put("fcm_token", token)
+            }
+            val body = json.toString().toRequestBody(JSON_MEDIA)
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", SupabaseConfig.anonKey)
+                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Content-Type", "application/json")
+                .patch(body)
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                val ok = response.isSuccessful || response.code in 200..204
+                if (ok) {
+                    Log.i(TAG, "Synced direct FCM device token to Supabase for user: $userId")
+                }
+                ok
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update FCM token in Supabase: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Query target student's direct device FCM token for 1-to-1 VoIP calling
+     */
+    suspend fun getFcmTokenForStudent(studentName: String): String? = withContext(Dispatchers.IO) {
+        if (studentName.isBlank()) return@withContext null
+        try {
+            val cleanName = studentName.trim()
+            val url = "${SupabaseConfig.projectUrl}/rest/v1/profiles?name=eq.$cleanName&select=fcm_token"
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("apikey", SupabaseConfig.anonKey)
+                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .get()
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val raw = response.body?.string() ?: "[]"
+                    val jsonArray = JSONArray(raw)
+                    if (jsonArray.length() > 0) {
+                        val token = jsonArray.getJSONObject(0).optString("fcm_token", "")
+                        if (token.isNotBlank()) return@withContext token
+                    }
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.w(TAG, "Error querying student FCM token: ${e.message}")
+            null
+        }
+    }
+
+    /**
      * Fetch all registered students and teachers from backend
      */
     suspend fun fetchProfiles(): Result<Pair<List<StudentInfo>, List<TeacherInfo>>> = withContext(Dispatchers.IO) {
@@ -270,6 +337,7 @@ class AcademyBackendService {
                         val roleStr = obj.optString("role", "STUDENT")
                         val teacherName = obj.optString("assigned_teacher_name", "")
                         val tajweed = obj.optString("tajweed_level", "Intermediate Tajweed")
+                        val token = obj.optString("fcm_token", "")
 
                         if (roleStr.equals("TEACHER", ignoreCase = true)) {
                             teachers.add(
@@ -280,7 +348,8 @@ class AcademyBackendService {
                                     title = "Certified Quran & Tajweed Instructor",
                                     tajweedIjazah = "Certified Hafiz & Qari",
                                     assignedStudentCount = 0,
-                                    availability = "Available for Live Classes"
+                                    availability = "Available for Live Classes",
+                                    fcmToken = token
                                 )
                             )
                         } else if (roleStr.equals("STUDENT", ignoreCase = true)) {
@@ -292,7 +361,8 @@ class AcademyBackendService {
                                     tajweedLevel = tajweed,
                                     currentSurah = "Surah Al-Mulk",
                                     attendanceRate = "100%",
-                                    email = email
+                                    email = email,
+                                    fcmToken = token
                                 )
                             )
                         }
@@ -464,13 +534,15 @@ class AcademyBackendService {
                 .post(body)
                 .build()
 
-            // Also dispatch high-priority FCM push to wake up device when app is closed / phone locked
+            // Also dispatch high-priority direct FCM push to wake up student's phone
             try {
+                val targetStudentToken = getFcmTokenForStudent(qClass.studentName)
                 com.example.service.FcmNotificationSender.sendIncomingCallPush(
                     classId = qClass.id,
                     teacherName = teacherName,
                     studentName = qClass.studentName,
-                    roomName = qClass.liveKitRoomName
+                    roomName = qClass.liveKitRoomName,
+                    targetDeviceToken = targetStudentToken ?: ""
                 )
             } catch (fcmEx: Exception) {
                 Log.w(TAG, "FCM Push dispatch error: ${fcmEx.message}")

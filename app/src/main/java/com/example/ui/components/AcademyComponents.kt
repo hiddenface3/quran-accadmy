@@ -121,7 +121,6 @@ fun AcademyHeader(
                             modifier = Modifier
                                 .size(48.dp)
                                 .border(1.5.dp, GoldSecondary, CircleShape)
-                                .clickable { onRoleSwitchClick() }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
@@ -150,12 +149,11 @@ fun AcademyHeader(
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Role badge
+                        // Role badge (Secure Non-Clickable Display)
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = Color.White.copy(alpha = 0.15f),
                             modifier = Modifier
-                                .clickable { onRoleSwitchClick() }
                                 .padding(end = 8.dp)
                         ) {
                             Text(

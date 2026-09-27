@@ -44,6 +44,17 @@ class AppPreferences(context: Context) {
         private const val KEY_SUPABASE_URL = "supabase_url"
         private const val KEY_SUPABASE_KEY = "supabase_key"
         private const val KEY_REGISTERED_EMAILS = "registered_emails"
+        private const val KEY_FCM_TOKEN = "fcm_device_token"
+    }
+
+    fun saveFcmToken(token: String) {
+        if (token.isNotBlank()) {
+            prefs.edit().putString(KEY_FCM_TOKEN, token).apply()
+        }
+    }
+
+    fun getFcmToken(): String {
+        return prefs.getString(KEY_FCM_TOKEN, "") ?: ""
     }
 
     fun getRegisteredEmails(): Set<String> {
@@ -74,6 +85,9 @@ class AppPreferences(context: Context) {
 
     fun saveUser(user: UserProfile) {
         addRegisteredEmail(user.email)
+        if (user.fcmToken.isNotBlank()) {
+            saveFcmToken(user.fcmToken)
+        }
         prefs.edit().apply {
             putBoolean(KEY_IS_LOGGED_IN, true)
             putString(KEY_USER_ID, user.id)
@@ -103,6 +117,7 @@ class AppPreferences(context: Context) {
         val teacher = prefs.getString(KEY_ASSIGNED_TEACHER, "Sheikh Abdullah Al-Mansoor") ?: "Sheikh Abdullah Al-Mansoor"
         val tajweed = prefs.getString(KEY_TAJWEED_LEVEL, "Intermediate Tajweed (Ahkam At-Tilawah)") ?: ""
         val avatar = prefs.getString(KEY_AVATAR_URL, "") ?: ""
+        val token = getFcmToken()
 
         if (name.isBlank() || email.isBlank()) {
             return null
@@ -115,7 +130,8 @@ class AppPreferences(context: Context) {
             role = role,
             avatarUrl = avatar,
             assignedTeacherName = teacher,
-            tajweedLevel = tajweed
+            tajweedLevel = tajweed,
+            fcmToken = token
         )
     }
 

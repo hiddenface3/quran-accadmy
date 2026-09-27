@@ -18,5 +18,6 @@ data class UserProfile(
     val currentAyah: Int = 14,
     val completedJuzCount: Int = 3,
     val attendanceRate: String = "100%",
-    val enrolledDate: String = "September 2026"
+    val enrolledDate: String = "September 2026",
+    val fcmToken: String = ""
 )

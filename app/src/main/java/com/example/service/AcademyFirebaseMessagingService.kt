@@ -6,6 +6,7 @@ import com.example.data.model.UserRole
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.launch
 
 /**
  * Handles incoming Firebase Cloud Messaging high-priority push events
@@ -42,7 +43,16 @@ class AcademyFirebaseMessagingService : FirebaseMessagingService() {
         super.onNewToken(token)
         Log.i(TAG, "New FCM Device Token generated: $token")
         val prefs = AppPreferences(applicationContext)
+        prefs.saveFcmToken(token)
         initializeTopics(prefs)
+
+        val user = prefs.getSavedUser()
+        if (user != null && user.id.isNotBlank()) {
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                val backend = com.example.data.backend.AcademyBackendService()
+                backend.updateUserFcmToken(user.id, token)
+            }
+        }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -80,6 +90,12 @@ class AcademyFirebaseMessagingService : FirebaseMessagingService() {
                         Log.d(TAG, "Call ignored: intended for $studentName, current user is ${currentUser.name}")
                         return
                     }
+                }
+
+                // NEW: Prevent self-receiving call (teacher calls student, but gets the push themselves)
+                if (currentUser != null && currentUser.name.trim().lowercase() == teacherName.trim().lowercase()) {
+                    Log.d(TAG, "Call ignored: initiated by myself (${currentUser.name})")
+                    return
                 }
 
                 // Trigger ringing service with full-screen intent & wake lock

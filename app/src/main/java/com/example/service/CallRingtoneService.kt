@@ -16,8 +16,10 @@ import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.content.pm.ServiceInfo
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.Person
 import com.example.MainActivity
 
 /**
@@ -131,21 +133,46 @@ class CallRingtoneService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val caller = androidx.core.app.Person.Builder()
+            .setName(teacherName)
+            .setImportant(true)
+            .build()
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        val canUseFsi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            notificationManager?.canUseFullScreenIntent() ?: true
+        } else {
+            true
+        }
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_call)
-            .setContentTitle("Incoming Quran Live Class Call")
+            .setContentTitle("Incoming Quran Live Class")
             .setContentText("$teacherName is calling $studentName for Live Session")
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setAutoCancel(true)
             .setOngoing(true)
-            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setStyle(
+                NotificationCompat.CallStyle.forIncomingCall(
+                    caller,
+                    declinePendingIntent,
+                    fullScreenPendingIntent
+                )
+            )
+            .setFullScreenIntent(fullScreenPendingIntent, canUseFsi)
             .setContentIntent(fullScreenPendingIntent)
-            .addAction(android.R.drawable.ic_menu_call, "Answer Class", fullScreenPendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Decline", declinePendingIntent)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     private fun startRingtoneAndVibration() {

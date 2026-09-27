@@ -10,8 +10,11 @@
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
--- 1. ENABLE ROW LEVEL SECURITY
+-- 1. ENABLE ROW LEVEL SECURITY & SCHEMA MIGRATIONS
 -- ------------------------------------------------------------------------------
+ALTER TABLE IF EXISTS public.profiles ADD COLUMN IF NOT EXISTS fcm_token TEXT DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_profiles_fcm_token ON public.profiles(fcm_token);
+
 ALTER TABLE IF EXISTS public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.active_calls ENABLE ROW LEVEL SECURITY;

@@ -164,12 +164,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         authManager.prefs.addRegisteredEmail(email)
         repository.updateCurrentUser(user)
         com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
+        syncDeviceTokenToBackend(user.id)
     }
 
     fun signInWithEmailAndRole(name: String, email: String, role: UserRole) {
         val user = authManager.signInWithEmailAndRole(name, email, role)
         repository.updateCurrentUser(user)
         com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
+        syncDeviceTokenToBackend(user.id)
+    }
+
+    private fun syncDeviceTokenToBackend(userId: String) {
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().token
+                .addOnSuccessListener { token ->
+                    if (!token.isNullOrBlank()) {
+                        authManager.prefs.saveFcmToken(token)
+                        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            repository.backendService.updateUserFcmToken(userId, token)
+                        }
+                    }
+                }
+        } catch (_: Exception) {}
     }
 
     fun signInAsRole(role: UserRole) {

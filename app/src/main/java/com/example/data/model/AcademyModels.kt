@@ -48,7 +48,8 @@ data class StudentInfo(
     val tajweedLevel: String,
     val currentSurah: String,
     val attendanceRate: String = "98%",
-    val phone: String = "+1 (555) 234-5678"
+    val phone: String = "+1 (555) 234-5678",
+    val fcmToken: String = ""
 )
 
 data class TeacherInfo(
@@ -59,7 +60,8 @@ data class TeacherInfo(
     val tajweedIjazah: String,
     val assignedStudentCount: Int,
     val availability: String = "Daily 4 PM - 9 PM",
-    val phone: String = "+1 (555) 876-5432"
+    val phone: String = "+1 (555) 876-5432",
+    val fcmToken: String = ""
 )
 
 data class QuranVerse(

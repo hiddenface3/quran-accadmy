@@ -76,7 +76,6 @@ fun HomeScreen(
     val notifications by viewModel.notifications.collectAsStateWithLifecycle()
 
     var showNotificationsSheet by remember { mutableStateOf(false) }
-    var showRoleSwitchDialog by remember { mutableStateOf(false) }
     val unreadNotifs = notifications.count { !it.isRead }
 
     Box(modifier = modifier.fillMaxSize().background(Color(0xFFFAF9F5))) {
@@ -93,7 +92,7 @@ fun HomeScreen(
                         showNotificationsSheet = true
                         viewModel.markNotificationsRead()
                     },
-                    onRoleSwitchClick = { showRoleSwitchDialog = true }
+                    onRoleSwitchClick = {}
                 )
             }
 
@@ -281,71 +280,6 @@ fun HomeScreen(
         }
     }
 
-    // Role Switch Dialog (Apple HIG Squircle Modal)
-    if (showRoleSwitchDialog) {
-        AlertDialog(
-            onDismissRequest = { showRoleSwitchDialog = false },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(24.dp),
-            title = {
-                Text(
-                    text = "Switch Academy Role",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color(0xFF0F172A)
-                )
-            },
-            text = {
-                Column {
-                    Text(
-                        text = "Choose which role perspective to preview in Quran Academy:",
-                        fontSize = 13.sp,
-                        color = Color(0xFF64748B)
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    RoleOptionItem(
-                        title = "Student (Zaid Ahmed)",
-                        desc = "View next class, join live lessons, read Quran, message teacher",
-                        isSelected = currentUser.role == UserRole.STUDENT,
-                        onClick = {
-                            viewModel.signInAsRole(UserRole.STUDENT)
-                            showRoleSwitchDialog = false
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    RoleOptionItem(
-                        title = "Teacher (Sheikh Abdullah)",
-                        desc = "Start live classes, manage students, reply to questions",
-                        isSelected = currentUser.role == UserRole.TEACHER,
-                        onClick = {
-                            viewModel.signInAsRole(UserRole.TEACHER)
-                            showRoleSwitchDialog = false
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    RoleOptionItem(
-                        title = "Admin (Ustadh Ibrahim)",
-                        desc = "Academy coordinator, manage scheduling and curriculum",
-                        isSelected = currentUser.role == UserRole.ADMIN,
-                        onClick = {
-                            viewModel.signInAsRole(UserRole.ADMIN)
-                            showRoleSwitchDialog = false
-                        }
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showRoleSwitchDialog = false }) {
-                    Text("Close", color = Color(0xFF059669), fontWeight = FontWeight.Bold)
-                }
-            }
-        )
-    }
 
     // Apple Notifications Bottom Sheet
     if (showNotificationsSheet) {
@@ -450,37 +384,3 @@ fun HomeScreen(
     }
 }
 
-@Composable
-private fun RoleOptionItem(
-    title: String,
-    desc: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(14.dp),
-        color = if (isSelected) Color(0xFFECFDF5) else Color(0xFFF8FAFC),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isSelected) Color(0xFF10B981) else Color(0xFFE2E8F0)
-        )
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = title,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                color = if (isSelected) Color(0xFF065F46) else Color(0xFF0F172A)
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = desc,
-                fontSize = 11.sp,
-                color = Color(0xFF64748B)
-            )
-        }
-    }
-}

@@ -373,8 +373,10 @@ fun ProfileScreen(
               avatar_url text default '',
               assigned_teacher_name text default '',
               tajweed_level text default 'Beginner',
+              fcm_token text default '',
               updated_at timestamp with time zone default timezone('utc'::text, now())
             );
+            create index if not exists idx_profiles_fcm_token on public.profiles(fcm_token);
 
             create table if not exists public.classes (
               id text primary key,

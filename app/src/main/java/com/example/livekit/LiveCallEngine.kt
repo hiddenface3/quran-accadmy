@@ -236,12 +236,14 @@ object LiveCallEngine {
                             _connectionQuality.value = event.quality.name
                         }
                         is RoomEvent.Reconnecting -> {
-                            _connectionMode.value = "Reconnecting..."
-                            _connectionQuality.value = "POOR"
+                            _connectionMode.value = "Reconnecting to Live Class..."
+                            _connectionQuality.value = "RECONNECTING"
+                            Log.w(TAG, "LiveKit WebRTC auto-reconnecting (ICE restart)...")
                         }
                         is RoomEvent.Reconnected -> {
                             _connectionMode.value = "LiveKit HD Reconnected"
                             _connectionQuality.value = "EXCELLENT"
+                            Log.i(TAG, "LiveKit WebRTC reconnected successfully!")
                         }
                         is RoomEvent.Disconnected -> {
                             _isPeerConnected.value = false

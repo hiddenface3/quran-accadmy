@@ -542,12 +542,22 @@ fun LoginScreen(
 
                             if (!isSignUpMode) {
                                 // --- LOG IN FLOW ---
-                                val isRegistered = viewModel.isEmailRegistered(cleanEmail) || detectedExistingAccount != null
-                                if (!isRegistered) {
+                                val isRegisteredEmail = viewModel.isEmailRegistered(cleanEmail)
+                                if (!isRegisteredEmail) {
                                     authErrorMessage = "No account found with this email. Please switch to Sign Up to create your account."
                                     return@Button
                                 }
-                                val finalRole = activeRole
+                                
+                                val isAdmin = com.example.auth.AuthManager.authorizedAdminEmails.contains(cleanEmail) || cleanEmail == "swabi5072@gmail.com"
+                                val exactMatchStudent = students.any { it.email.trim().lowercase() == cleanEmail && it.name.trim().lowercase() == cleanName }
+                                val exactMatchTeacher = teachers.any { it.email.trim().lowercase() == cleanEmail && it.name.trim().lowercase() == cleanName }
+                                
+                                if (!isAdmin && !exactMatchStudent && !exactMatchTeacher) {
+                                    authErrorMessage = "Name does not match the registered profile for this email. Please check your spelling."
+                                    return@Button
+                                }
+
+                                val finalRole = if (isAdmin) UserRole.ADMIN else if (exactMatchTeacher) UserRole.TEACHER else UserRole.STUDENT
                                 viewModel.signInWithEmailAndRole(cleanName, cleanEmail, finalRole)
                                 onLoginSuccess(finalRole)
                             } else {

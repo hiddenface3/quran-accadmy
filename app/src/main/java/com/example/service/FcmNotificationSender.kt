@@ -148,18 +148,26 @@ object FcmNotificationSender {
 
     /**
      * Dispatch high-priority incoming call push to wake up student's phone
+     * Uses direct 1-to-1 FCM device token targeting (Industry Standard)
      */
     suspend fun sendIncomingCallPush(
         classId: String,
         teacherName: String,
         studentName: String,
-        roomName: String
+        roomName: String,
+        targetDeviceToken: String = ""
     ): Boolean = withContext(Dispatchers.IO) {
         val accessToken = getAccessToken() ?: return@withContext false
 
         try {
             val messageObj = JSONObject().apply {
-                put("topic", AcademyFirebaseMessagingService.TOPIC_CALLS)
+                if (targetDeviceToken.isNotBlank()) {
+                    put("token", targetDeviceToken)
+                    Log.i(TAG, "Targeting direct 1-to-1 FCM device token: ${targetDeviceToken.take(16)}...")
+                } else {
+                    put("topic", AcademyFirebaseMessagingService.TOPIC_CALLS)
+                    Log.w(TAG, "Target device token not found for $studentName; falling back to topic push")
+                }
                 put("data", JSONObject().apply {
                     put("action", "INCOMING_CALL")
                     put("class_id", classId)
@@ -205,12 +213,19 @@ object FcmNotificationSender {
     /**
      * Send cancellation push when teacher hangs up or call is dismissed
      */
-    suspend fun sendCancelCallPush(classId: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun sendCancelCallPush(
+        classId: String,
+        targetDeviceToken: String = ""
+    ): Boolean = withContext(Dispatchers.IO) {
         val accessToken = getAccessToken() ?: return@withContext false
 
         try {
             val messageObj = JSONObject().apply {
-                put("topic", AcademyFirebaseMessagingService.TOPIC_CALLS)
+                if (targetDeviceToken.isNotBlank()) {
+                    put("token", targetDeviceToken)
+                } else {
+                    put("topic", AcademyFirebaseMessagingService.TOPIC_CALLS)
+                }
                 put("data", JSONObject().apply {
                     put("action", "CANCEL_CALL")
                     put("class_id", classId)

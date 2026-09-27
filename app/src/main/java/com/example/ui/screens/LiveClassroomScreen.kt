@@ -396,6 +396,39 @@ fun LiveClassroomScreen(
                     }
                 }
 
+                // Reconnecting Network Recovery Banner (Industry-Standard WebRTC HUD)
+                AnimatedVisibility(
+                    visible = connectionQuality == "RECONNECTING" || connectionMode.contains("Reconnecting", ignoreCase = true),
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically()
+                ) {
+                    Surface(
+                        color = Color(0xFFD97706),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Reconnecting to Live Class... Please hold on",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
                 // Middle Video Stage Area
                 Box(
                     modifier = Modifier
