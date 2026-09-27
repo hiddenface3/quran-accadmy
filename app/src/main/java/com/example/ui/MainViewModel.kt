@@ -149,6 +149,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun isEmailRegistered(email: String): Boolean {
+        val cleanEmail = email.trim().lowercase()
+        if (cleanEmail.isBlank()) return false
+        if (authManager.prefs.isEmailRegistered(cleanEmail)) return true
+        if (students.value.any { it.email.trim().lowercase() == cleanEmail }) return true
+        if (teachers.value.any { it.email.trim().lowercase() == cleanEmail }) return true
+        if (com.example.auth.AuthManager.authorizedAdminEmails.contains(cleanEmail) || cleanEmail == "swabi5072@gmail.com") return true
+        return false
+    }
+
+    fun registerNewUser(name: String, email: String, role: UserRole) {
+        val user = authManager.signInWithEmailAndRole(name, email, role)
+        authManager.prefs.addRegisteredEmail(email)
+        repository.updateCurrentUser(user)
+        com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
+    }
+
     fun signInWithEmailAndRole(name: String, email: String, role: UserRole) {
         val user = authManager.signInWithEmailAndRole(name, email, role)
         repository.updateCurrentUser(user)

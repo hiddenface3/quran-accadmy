@@ -77,16 +77,18 @@ fun LoginScreen(
     val teachers by viewModel.teachers.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
+    var isSignUpMode by remember { mutableStateOf(false) }
     var inputName by remember { mutableStateOf("") }
     var inputEmail by remember { mutableStateOf("") }
     var selectedRole by remember { mutableStateOf(UserRole.STUDENT) }
+    var authErrorMessage by remember { mutableStateOf<String?>(null) }
     var googleSignInNote by remember { mutableStateOf<String?>(null) }
 
     val trimmedEmail = inputEmail.trim().lowercase()
     val trimmedName = inputName.trim().lowercase()
 
     // Auto-detect existing accounts
-    val matchingAdmin = if (trimmedEmail == "swabi5072@gmail.com" || (trimmedEmail.isNotBlank() && trimmedEmail.contains("admin")) || (trimmedName.isNotBlank() && trimmedName.contains("admin"))) {
+    val matchingAdmin = if (trimmedEmail == "swabi5072@gmail.com" || (trimmedEmail.isNotBlank() && trimmedEmail.contains("admin"))) {
         "Academy Administrator"
     } else null
 
@@ -107,7 +109,13 @@ fun LoginScreen(
         else -> null
     }
 
-    val activeRole = detectedExistingAccount?.first ?: if (trimmedEmail.contains("admin")) UserRole.ADMIN else selectedRole
+    val activeRole = if (!isSignUpMode && detectedExistingAccount != null) {
+        detectedExistingAccount.first
+    } else if (trimmedEmail == "swabi5072@gmail.com") {
+        UserRole.ADMIN
+    } else {
+        selectedRole
+    }
 
     Box(
         modifier = modifier
@@ -173,14 +181,14 @@ fun LoginScreen(
             )
 
             Text(
-                text = "Welcome back! Enter your details to access your live classes",
+                text = if (!isSignUpMode) "Welcome back! Enter your details to log in to your account." else "New to Quran Academy? Sign up to start your recitation journey.",
                 fontSize = 13.sp,
                 color = com.example.ui.theme.M3SlateText,
                 modifier = Modifier.padding(top = 4.dp, start = 12.dp, end = 12.dp),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Main Auth Card (Material 3 Elevated Card)
             Card(
@@ -198,9 +206,62 @@ fun LoginScreen(
                         .padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // M3 Segmented Selector: Log In vs Sign Up
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = com.example.ui.theme.M3MintSubtle,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3SageBorder),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                    ) {
+                        Row(modifier = Modifier.padding(4.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (!isSignUpMode) com.example.ui.theme.M3EmeraldPrimary else Color.Transparent)
+                                    .clickable {
+                                        isSignUpMode = false
+                                        authErrorMessage = null
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Log In",
+                                    fontSize = 13.sp,
+                                    fontWeight = if (!isSignUpMode) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (!isSignUpMode) Color.White else com.example.ui.theme.M3SlateText
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSignUpMode) com.example.ui.theme.M3EmeraldPrimary else Color.Transparent)
+                                    .clickable {
+                                        isSignUpMode = true
+                                        authErrorMessage = null
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Sign Up",
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSignUpMode) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSignUpMode) Color.White else com.example.ui.theme.M3SlateText
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
                     // Material 3 SELECT ROLE Label
                     Text(
-                        text = "SELECT ROLE",
+                        text = if (!isSignUpMode) "ACCOUNT ROLE" else "CHOOSE YOUR ROLE",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = com.example.ui.theme.M3MutedText,
@@ -224,7 +285,10 @@ fun LoginScreen(
                         roles.forEach { (role, label, icon) ->
                             val isSelected = activeRole == role
                             Surface(
-                                onClick = { selectedRole = role },
+                                onClick = {
+                                    selectedRole = role
+                                    authErrorMessage = null
+                                },
                                 shape = RoundedCornerShape(20.dp),
                                 color = if (isSelected) com.example.ui.theme.M3MintSelected else Color.White,
                                 border = androidx.compose.foundation.BorderStroke(
@@ -270,14 +334,17 @@ fun LoginScreen(
                     // Input: Full Name (Material 3 OutlinedTextField)
                     OutlinedTextField(
                         value = inputName,
-                        onValueChange = { inputName = it },
+                        onValueChange = {
+                            inputName = it
+                            authErrorMessage = null
+                        },
                         label = { Text("Full Name") },
                         placeholder = {
                             Text(
                                 when (activeRole) {
                                     UserRole.STUDENT -> "e.g., Zaid Ahmed"
                                     UserRole.TEACHER -> "e.g., Sheikh Abdullah"
-                                    UserRole.ADMIN -> "e.g., Ustadh Ibrahim"
+                                    UserRole.ADMIN -> "e.g., Director Ibrahim"
                                 }
                             )
                         },
@@ -302,12 +369,15 @@ fun LoginScreen(
                     // Input: Email / Gmail (Material 3 OutlinedTextField)
                     OutlinedTextField(
                         value = inputEmail,
-                        onValueChange = { inputEmail = it },
+                        onValueChange = {
+                            inputEmail = it
+                            authErrorMessage = null
+                        },
                         label = { Text("Gmail / Email Address") },
                         placeholder = {
                             Text(
                                 when (activeRole) {
-                                    UserRole.ADMIN -> "admin@quranacademy.com"
+                                    UserRole.ADMIN -> "swabi5072@gmail.com"
                                     UserRole.TEACHER -> "teacher@gmail.com"
                                     UserRole.STUDENT -> "student@gmail.com"
                                 }
@@ -315,7 +385,7 @@ fun LoginScreen(
                         },
                         supportingText = {
                             Text(
-                                text = "Use your registered academy Google account",
+                                text = if (!isSignUpMode) "Enter your registered academy email" else "Enter a valid email for class notifications",
                                 fontSize = 11.sp,
                                 color = com.example.ui.theme.M3SlateText
                             )
@@ -336,8 +406,78 @@ fun LoginScreen(
                         )
                     )
 
-                    // Account Already Exists Banner (Material 3 Callout Card)
-                    if (detectedExistingAccount != null) {
+                    // Error Banner / Switch Prompt
+                    if (authErrorMessage != null) {
+                        Surface(
+                            color = Color(0xFFFEF2F2),
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = Color(0xFFDC2626),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = authErrorMessage ?: "",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF991B1B),
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                if (!isSignUpMode && (authErrorMessage?.contains("Sign Up", ignoreCase = true) == true)) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            isSignUpMode = true
+                                            authErrorMessage = null
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(36.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3EmeraldPrimary)
+                                    ) {
+                                        Text(
+                                            text = "Switch to Sign Up",
+                                            color = com.example.ui.theme.M3EmeraldPrimary,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                } else if (isSignUpMode && (authErrorMessage?.contains("Log In", ignoreCase = true) == true)) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            isSignUpMode = false
+                                            authErrorMessage = null
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(36.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3EmeraldPrimary)
+                                    ) {
+                                        Text(
+                                            text = "Switch to Log In",
+                                            color = com.example.ui.theme.M3EmeraldPrimary,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Account Already Exists Banner in Log In mode
+                    if (!isSignUpMode && detectedExistingAccount != null && authErrorMessage == null) {
                         Surface(
                             color = com.example.ui.theme.M3MintContainer,
                             shape = RoundedCornerShape(14.dp),
@@ -367,35 +507,17 @@ fun LoginScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "Account already exists!",
+                                        text = "Account recognized!",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = com.example.ui.theme.M3EmeraldDark
                                     )
                                     Text(
-                                        text = "Identity: ${detectedExistingAccount.second} (${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }}). Tap below to log in.",
+                                        text = "Welcome back ${detectedExistingAccount.second} (${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }}). Tap below to enter.",
                                         fontSize = 11.sp,
                                         color = com.example.ui.theme.M3EmeraldPrimary
                                     )
                                 }
-                            }
-                        }
-                    } else if (matchingAdmin != null || trimmedEmail.contains("admin")) {
-                        Surface(
-                            color = Color(0xFFFFFBEB),
-                            shape = RoundedCornerShape(14.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE68A)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Authorized Academy Director Email detected", fontSize = 11.sp, color = Color(0xFF92400E), fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -405,20 +527,43 @@ fun LoginScreen(
                     // Primary Button: High-emphasis Material 3 Filled Button (54dp Stadium Pill)
                     Button(
                         onClick = {
-                            val finalRole = activeRole
-                            val finalEmail = if (inputEmail.isNotBlank()) inputEmail.trim() else when (finalRole) {
-                                UserRole.STUDENT -> matchingStudent?.email ?: "student.quran@gmail.com"
-                                UserRole.TEACHER -> matchingTeacher?.email ?: "teacher.abdullah@gmail.com"
-                                UserRole.ADMIN -> "swabi5072@gmail.com"
+                            authErrorMessage = null
+                            val cleanName = inputName.trim()
+                            val cleanEmail = inputEmail.trim().lowercase()
+
+                            if (cleanName.isBlank()) {
+                                authErrorMessage = "Please enter your full name."
+                                return@Button
                             }
-                            val finalName = if (inputName.isNotBlank()) inputName.trim() else when (finalRole) {
-                                UserRole.STUDENT -> matchingStudent?.name ?: "Zaid Ahmed"
-                                UserRole.TEACHER -> matchingTeacher?.name ?: "Sheikh Abdullah Al-Mansoor"
-                                UserRole.ADMIN -> "Ustadh Ibrahim (Director)"
+                            if (cleanEmail.isBlank() || !cleanEmail.contains("@") || !cleanEmail.contains(".")) {
+                                authErrorMessage = "Please enter a valid email address."
+                                return@Button
                             }
 
-                            viewModel.signInWithEmailAndRole(finalName, finalEmail, finalRole)
-                            onLoginSuccess(finalRole)
+                            if (!isSignUpMode) {
+                                // --- LOG IN FLOW ---
+                                val isRegistered = viewModel.isEmailRegistered(cleanEmail) || detectedExistingAccount != null
+                                if (!isRegistered) {
+                                    authErrorMessage = "No account found with this email. Please switch to Sign Up to create your account."
+                                    return@Button
+                                }
+                                val finalRole = activeRole
+                                viewModel.signInWithEmailAndRole(cleanName, cleanEmail, finalRole)
+                                onLoginSuccess(finalRole)
+                            } else {
+                                // --- SIGN UP FLOW ---
+                                if (selectedRole == UserRole.ADMIN && cleanEmail != "swabi5072@gmail.com" && !com.example.auth.AuthManager.authorizedAdminEmails.contains(cleanEmail)) {
+                                    authErrorMessage = "Administrator accounts cannot be created publicly. Please choose Student or Teacher."
+                                    return@Button
+                                }
+                                val alreadyExists = viewModel.isEmailRegistered(cleanEmail) || detectedExistingAccount != null
+                                if (alreadyExists) {
+                                    authErrorMessage = "An account with this email already exists. Please switch to Log In."
+                                    return@Button
+                                }
+                                viewModel.registerNewUser(cleanName, cleanEmail, selectedRole)
+                                onLoginSuccess(selectedRole)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -432,11 +577,7 @@ fun LoginScreen(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = if (detectedExistingAccount != null) {
-                                    "Continue to Portal (${activeRole.name.lowercase().replaceFirstChar { it.uppercase() }})"
-                                } else {
-                                    "Continue to Portal"
-                                },
+                                text = if (!isSignUpMode) "Log In to Portal" else "Create Account & Continue",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White
@@ -522,157 +663,35 @@ fun LoginScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Quick Demo Profiles (Material 3 Elevated Card from Stitch design)
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = com.example.ui.theme.M3MintSubtle,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3SageBorder),
-                        modifier = Modifier.fillMaxWidth()
+                    // Mode Switcher Link
+                    Row(
+                        modifier = Modifier
+                            .clickable {
+                                isSignUpMode = !isSignUpMode
+                                authErrorMessage = null
+                            }
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 10.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = com.example.ui.theme.M3EmeraldPrimary,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "QUICK DEMO PROFILES",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = com.example.ui.theme.M3EmeraldPrimary,
-                                    letterSpacing = 0.5.sp
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                PresetButton(
-                                    title = "Sheikh Abdullah",
-                                    sub = "Teacher",
-                                    avatarInitial = "SA",
-                                    isGreen = true,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        viewModel.signInWithEmailAndRole("saqib saib", "itskhan7733@gmail.com", UserRole.TEACHER)
-                                        onLoginSuccess(UserRole.TEACHER)
-                                    }
-                                )
-                                PresetButton(
-                                    title = "Zaid Ahmed",
-                                    sub = "Student",
-                                    avatarInitial = "ZA",
-                                    isGreen = false,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        viewModel.signInWithEmailAndRole("zaidkhan", "mytest5072@gmail.com", UserRole.STUDENT)
-                                        onLoginSuccess(UserRole.STUDENT)
-                                    }
-                                )
-                            }
-                        }
+                        Text(
+                            text = if (!isSignUpMode) "Don't have an academy account? " else "Already have an account? ",
+                            fontSize = 12.sp,
+                            color = com.example.ui.theme.M3SlateText
+                        )
+                        Text(
+                            text = if (!isSignUpMode) "Sign Up" else "Log In",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = com.example.ui.theme.M3EmeraldPrimary
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
-}
-
-@Composable
-private fun RoleSelectionTab(
-    title: String,
-    subtitle: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.fillMaxSize(),
-        shape = RoundedCornerShape(25.dp),
-        color = if (isSelected) Color(0xFF059669) else Color.Transparent,
-        shadowElevation = if (isSelected) 2.dp else 0.dp
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = title,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.White else Color(0xFF1E293B)
-            )
-            Text(
-                text = subtitle,
-                fontSize = 10.sp,
-                color = if (isSelected) Color(0xFFD1FAE5) else Color(0xFF64748B)
-            )
-        }
-    }
-}
-
-@Composable
-private fun PresetButton(
-    title: String,
-    sub: String,
-    avatarInitial: String = "",
-    isGreen: Boolean = true,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = com.example.ui.theme.M3MintSubtle,
-        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.M3SageBorder)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(if (isGreen) com.example.ui.theme.M3MintContainer else Color(0xFFE2E8F0)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = avatarInitial,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isGreen) com.example.ui.theme.M3EmeraldPrimary else com.example.ui.theme.M3CharcoalText
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(verticalArrangement = Arrangement.Center) {
-                Text(
-                    text = title,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = com.example.ui.theme.M3CharcoalText,
-                    maxLines = 1
-                )
-                Text(
-                    text = sub,
-                    fontSize = 10.sp,
-                    color = com.example.ui.theme.M3SlateText
-                )
-            }
         }
     }
 }

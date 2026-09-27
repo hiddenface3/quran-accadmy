@@ -43,9 +43,37 @@ class AppPreferences(context: Context) {
 
         private const val KEY_SUPABASE_URL = "supabase_url"
         private const val KEY_SUPABASE_KEY = "supabase_key"
+        private const val KEY_REGISTERED_EMAILS = "registered_emails"
+    }
+
+    fun getRegisteredEmails(): Set<String> {
+        val defaultKnown = setOf(
+            "mytest5072@gmail.com",
+            "itskhan7733@gmail.com",
+            "swabi5072@gmail.com",
+            "admin@quranacademy.com",
+            "student.quran@gmail.com",
+            "teacher.abdullah@gmail.com"
+        )
+        val saved = prefs.getStringSet(KEY_REGISTERED_EMAILS, emptySet()) ?: emptySet()
+        return defaultKnown + saved.map { it.lowercase().trim() }
+    }
+
+    fun addRegisteredEmail(email: String) {
+        if (email.isBlank()) return
+        val current = (prefs.getStringSet(KEY_REGISTERED_EMAILS, emptySet()) ?: emptySet()).toMutableSet()
+        current.add(email.lowercase().trim())
+        prefs.edit().putStringSet(KEY_REGISTERED_EMAILS, current).apply()
+    }
+
+    fun isEmailRegistered(email: String): Boolean {
+        val normalized = email.lowercase().trim()
+        if (normalized.isBlank()) return false
+        return getRegisteredEmails().contains(normalized)
     }
 
     fun saveUser(user: UserProfile) {
+        addRegisteredEmail(user.email)
         prefs.edit().apply {
             putBoolean(KEY_IS_LOGGED_IN, true)
             putString(KEY_USER_ID, user.id)
