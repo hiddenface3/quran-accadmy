@@ -69,8 +69,10 @@ import com.example.data.model.UserProfile
 import com.example.ui.theme.BrandDanger
 import com.example.ui.theme.BrandDarkEmerald
 import com.example.ui.theme.BrandDarkGold
+import com.example.ui.theme.BrandDarkVideo
 import com.example.ui.theme.BrandDivider
 import com.example.ui.theme.BrandGold
+import com.example.ui.theme.BrandLiveRed
 import com.example.ui.theme.BrandMint
 import com.example.ui.theme.BrandMutedText
 import com.example.ui.theme.BrandPageBackground
