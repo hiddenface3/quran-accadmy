@@ -153,170 +153,83 @@ object FcmNotificationSender {
     }
 
     /**
-     * Dispatch high-priority incoming call push to wake up student's phone
-     * Uses direct 1-to-1 FCM device token targeting (Industry Standard)
+     * Dispatch high-priority incoming call push to wake up the student's phone. This always
+     * goes through the send-call-push edge function now: that function verifies (via the
+     * caller's own Supabase Auth JWT + RLS) that the caller is actually the class's teacher
+     * before it resolves the student's device token and rings them - a client can no longer
+     * hand it an arbitrary token to push to, or spoof who a call is "from".
+     *
+     * The direct FCM v1 path below is intentionally never reachable in production: nothing
+     * calls [setServiceAccountConfig], so [getAccessToken] always returns null. It must stay
+     * that way - the Firebase Admin private key must never be loaded onto a device.
      */
-    suspend fun sendIncomingCallPush(
-        classId: String,
-        teacherName: String,
-        studentName: String,
-        roomName: String,
-        targetDeviceToken: String = ""
-    ): Boolean = withContext(Dispatchers.IO) {
+    suspend fun sendIncomingCallPush(classId: String): Boolean = withContext(Dispatchers.IO) {
         val accessToken = getAccessToken()
         if (accessToken == null) {
-            // Secure industry standard: dispatch push through backend Edge Function
-            return@withContext sendBackendCallPush(
-                action = "INCOMING_CALL",
-                classId = classId,
-                teacherName = teacherName,
-                studentName = studentName,
-                roomName = roomName,
-                targetDeviceToken = targetDeviceToken
-            )
+            return@withContext sendBackendCallPush(action = "INCOMING_CALL", classId = classId)
         }
-
-        try {
-            val messageObj = JSONObject().apply {
-                if (targetDeviceToken.isNotBlank()) {
-                    put("token", targetDeviceToken)
-                    Log.i(TAG, "Targeting direct 1-to-1 FCM device token: ${targetDeviceToken.take(16)}...")
-                } else {
-                    put("topic", AcademyFirebaseMessagingService.TOPIC_CALLS)
-                    Log.w(TAG, "Target device token not found for $studentName; falling back to topic push")
-                }
-                put("data", JSONObject().apply {
-                    put("action", "INCOMING_CALL")
-                    put("class_id", classId)
-                    put("teacher_name", teacherName)
-                    put("student_name", studentName)
-                    put("room_name", roomName)
-                })
-                put("android", JSONObject().apply {
-                    put("priority", "HIGH")
-                })
-            }
-
-            val rootObj = JSONObject().apply {
-                put("message", messageObj)
-            }
-
-            val requestBody = rootObj.toString()
-                .toRequestBody("application/json; charset=utf-8".toMediaType())
-
-            val request = Request.Builder()
-                .url(FCM_ENDPOINT)
-                .addHeader("Authorization", "Bearer $accessToken")
-                .addHeader("Content-Type", "application/json; UTF-8")
-                .post(requestBody)
-                .build()
-
-            httpClient.newCall(request).execute().use { response ->
-                val respBody = response.body?.string() ?: ""
-                if (response.isSuccessful) {
-                    Log.i(TAG, "FCM Incoming Call Push successfully dispatched: $respBody")
-                    true
-                } else {
-                    Log.e(TAG, "FCM Push dispatch error (${response.code}): $respBody")
-                    false
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "FCM Push exception: ${e.message}", e)
-            false
-        }
+        sendDirectFcm(accessToken, "INCOMING_CALL", classId)
     }
 
-    /**
-     * Send cancellation push when teacher hangs up or call is dismissed
-     */
-    suspend fun sendCancelCallPush(
-        classId: String,
-        targetDeviceToken: String = ""
-    ): Boolean = withContext(Dispatchers.IO) {
+    /** Send cancellation push when teacher hangs up or call is dismissed. */
+    suspend fun sendCancelCallPush(classId: String): Boolean = withContext(Dispatchers.IO) {
         val accessToken = getAccessToken()
         if (accessToken == null) {
-            return@withContext sendBackendCallPush(
-                action = "CANCEL_CALL",
-                classId = classId,
-                teacherName = "",
-                studentName = "",
-                roomName = "",
-                targetDeviceToken = targetDeviceToken
-            )
+            return@withContext sendBackendCallPush(action = "CANCEL_CALL", classId = classId)
         }
-
-        try {
-            val messageObj = JSONObject().apply {
-                if (targetDeviceToken.isNotBlank()) {
-                    put("token", targetDeviceToken)
-                } else {
-                    put("topic", AcademyFirebaseMessagingService.TOPIC_CALLS)
-                }
-                put("data", JSONObject().apply {
-                    put("action", "CANCEL_CALL")
-                    put("class_id", classId)
-                })
-                put("android", JSONObject().apply {
-                    put("priority", "HIGH")
-                })
-            }
-
-            val rootObj = JSONObject().apply {
-                put("message", messageObj)
-            }
-
-            val requestBody = rootObj.toString()
-                .toRequestBody("application/json; charset=utf-8".toMediaType())
-
-            val request = Request.Builder()
-                .url(FCM_ENDPOINT)
-                .addHeader("Authorization", "Bearer $accessToken")
-                .addHeader("Content-Type", "application/json; UTF-8")
-                .post(requestBody)
-                .build()
-
-            httpClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    Log.i(TAG, "FCM Cancel Call Push dispatched successfully")
-                    true
-                } else {
-                    false
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "FCM Cancel Call exception: ${e.message}", e)
-            false
-        }
+        sendDirectFcm(accessToken, "CANCEL_CALL", classId)
     }
 
+    private suspend fun sendDirectFcm(accessToken: String, action: String, classId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                val messageObj = JSONObject().apply {
+                    put("topic", AcademyFirebaseMessagingService.TOPIC_CALLS)
+                    put("data", JSONObject().apply {
+                        put("action", action)
+                        put("class_id", classId)
+                    })
+                    put("android", JSONObject().apply { put("priority", "HIGH") })
+                }
+                val rootObj = JSONObject().apply { put("message", messageObj) }
+                val requestBody = rootObj.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+                val request = Request.Builder()
+                    .url(FCM_ENDPOINT)
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .addHeader("Content-Type", "application/json; UTF-8")
+                    .post(requestBody)
+                    .build()
+
+                httpClient.newCall(request).execute().use { response ->
+                    val ok = response.isSuccessful
+                    if (!ok) Log.e(TAG, "FCM push dispatch error (${response.code}): ${response.body?.string()}")
+                    ok
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "FCM push exception: ${e.message}", e)
+                false
+            }
+        }
+
     /**
-     * Secure backend proxy dispatch via Supabase Edge Function
+     * Secure backend proxy dispatch via the send-call-push Supabase Edge Function. Only
+     * `action` and `class_id` are sent - the function resolves teacher/student/room and the
+     * recipient's device token itself, from data it verified the caller is allowed to see.
      */
-    private suspend fun sendBackendCallPush(
-        action: String,
-        classId: String,
-        teacherName: String,
-        studentName: String,
-        roomName: String,
-        targetDeviceToken: String
-    ): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun sendBackendCallPush(action: String, classId: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val url = "${com.example.data.backend.SupabaseConfig.projectUrl}/functions/v1/send-call-push"
             val payload = JSONObject().apply {
                 put("action", action)
                 put("class_id", classId)
-                put("teacher_name", teacherName)
-                put("student_name", studentName)
-                put("room_name", roomName)
-                put("target_token", targetDeviceToken)
             }
 
             val body = payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", com.example.data.backend.SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${com.example.data.backend.SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${com.example.data.backend.SupabaseSession.bearerToken()}")
                 .post(body)
                 .build()
 
@@ -325,7 +238,7 @@ object FcmNotificationSender {
                     Log.i(TAG, "Backend Call Push sent successfully ($action)")
                     true
                 } else {
-                    Log.w(TAG, "Backend Call Push returned code: ${response.code}")
+                    Log.w(TAG, "Backend Call Push returned code: ${response.code} ${response.body?.string()}")
                     false
                 }
             }

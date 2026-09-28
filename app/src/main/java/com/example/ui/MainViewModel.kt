@@ -162,29 +162,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun isEmailRegistered(email: String): Boolean {
-        val cleanEmail = email.trim().lowercase()
-        if (cleanEmail.isBlank()) return false
-        if (authManager.prefs.isEmailRegistered(cleanEmail)) return true
-        if (students.value.any { it.email.trim().lowercase() == cleanEmail }) return true
-        if (teachers.value.any { it.email.trim().lowercase() == cleanEmail }) return true
-        if (com.example.auth.AuthManager.authorizedAdminEmails.contains(cleanEmail) || cleanEmail == "swabi5072@gmail.com") return true
-        return false
+    private val _authBusy = MutableStateFlow(false)
+    val authBusy: StateFlow<Boolean> = _authBusy.asStateFlow()
+
+    /**
+     * Sign up always creates a STUDENT account - role is never taken from the client. An
+     * existing admin promotes a user to TEACHER/ADMIN later (server-side), which is what makes
+     * "admin" a role worth trusting again.
+     */
+    fun signUp(name: String, email: String, password: String, onResult: (Result<Unit>) -> Unit) {
+        _authBusy.value = true
+        viewModelScope.launch {
+            val result = authManager.signUp(name, email, password)
+            _authBusy.value = false
+            result.onSuccess { user ->
+                repository.updateCurrentUser(user)
+                com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
+                syncDeviceTokenToBackend(user.id)
+            }
+            onResult(result.map { })
+        }
     }
 
-    fun registerNewUser(name: String, email: String, role: UserRole) {
-        val user = authManager.signInWithEmailAndRole(name, email, role)
-        authManager.prefs.addRegisteredEmail(email)
-        repository.updateCurrentUser(user)
-        com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
-        syncDeviceTokenToBackend(user.id)
-    }
-
-    fun signInWithEmailAndRole(name: String, email: String, role: UserRole) {
-        val user = authManager.signInWithEmailAndRole(name, email, role)
-        repository.updateCurrentUser(user)
-        com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
-        syncDeviceTokenToBackend(user.id)
+    fun signIn(email: String, password: String, onResult: (Result<Unit>) -> Unit) {
+        _authBusy.value = true
+        viewModelScope.launch {
+            val result = authManager.signInWithPassword(email, password)
+            _authBusy.value = false
+            result.onSuccess { user ->
+                repository.updateCurrentUser(user)
+                com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
+                syncDeviceTokenToBackend(user.id)
+            }
+            onResult(result.map { })
+        }
     }
 
     private fun syncDeviceTokenToBackend(userId: String) {
@@ -201,19 +212,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (_: Exception) {}
     }
 
-    fun signInAsRole(role: UserRole) {
-        authManager.signInAsRole(role)
-        val saved = authManager.prefs.getSavedUser()
-        if (saved != null) {
-            repository.updateCurrentUser(saved)
-        } else {
-            repository.switchRole(role)
-        }
-        com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
-    }
-
-    fun saveLiveKitCredentials(serverUrl: String, apiKey: String, apiSecret: String) {
-        authManager.prefs.saveLiveKitConfig(serverUrl, apiKey, apiSecret)
+    fun saveLiveKitCredentials(serverUrl: String, apiKey: String) {
+        authManager.prefs.saveLiveKitConfig(serverUrl, apiKey)
     }
 
     fun saveSupabaseCredentials(projectUrl: String, anonKey: String) {
@@ -223,10 +223,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun signOut() {
         authManager.signOut()
         leaveClass()
-    }
-
-    fun switchRole(role: UserRole) {
-        signInAsRole(role)
     }
 
     fun joinClass(quranClass: QuranClass) {

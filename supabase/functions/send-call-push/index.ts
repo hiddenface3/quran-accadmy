@@ -7,101 +7,129 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req: Request) => {
-  // CORS Preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const fcmServerKey = Deno.env.get("FCM_SERVER_KEY") || "";
 
-    const {
-      action = "INCOMING_CALL",
-      class_id = "",
-      teacher_name = "Sheikh Abdullah Al-Mansoor",
-      student_name = "Zaid Ahmed",
-      room_name = "",
-      target_token = "",
-    } = await req.json();
-
-    let recipientToken = target_token;
-
-    // If target token not provided directly, lookup recipient token from database
-    if (!recipientToken && supabaseUrl && supabaseServiceKey) {
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("fcm_token")
-        .ilike("name", `%${student_name.trim()}%`)
-        .maybeSingle();
-
-      if (profile?.fcm_token) {
-        recipientToken = profile.fcm_token;
-      }
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      return json({ error: "Server missing required configuration" }, 500);
     }
 
-    // Also update active_calls table in Supabase so Realtime WebSockets trigger immediately
-    if (supabaseUrl && supabaseServiceKey && class_id) {
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      const isRinging = action === "INCOMING_CALL";
-      await supabase
-        .from("active_calls")
-        .upsert({
-          class_id,
-          teacher_name,
-          student_name,
-          room_name: room_name || `quran-room-${class_id}`,
+    // Must be the CALLER's own Supabase Auth JWT. We use it (via the anon-key client below)
+    // purely to ask "what is this person allowed to see", which is how we verify they're
+    // actually the teacher (or admin) on the class before we ring anyone or write anything.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
+      return json({ error: "Missing Authorization bearer token" }, 401);
+    }
+    const callerJwt = authHeader.slice(7);
+
+    const { action = "INCOMING_CALL", class_id: classId = "" } = await req.json();
+    if (!classId) {
+      return json({ error: "Missing required field: 'class_id'" }, 400);
+    }
+
+    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${callerJwt}` } },
+    });
+
+    const { data: myProfile } = await callerClient
+      .from("profiles")
+      .select("role,name")
+      .single();
+    if (!myProfile) {
+      return json({ error: "No profile found for the authenticated user" }, 403);
+    }
+
+    // RLS on `classes` (via the caller's own JWT) already restricts this to a row the caller
+    // is actually allowed to see - i.e. they're the teacher, the student, or an admin.
+    const { data: targetClass } = await callerClient
+      .from("classes")
+      .select("teacher_name,student_name,livekit_room_name")
+      .eq("id", classId)
+      .maybeSingle();
+    if (!targetClass) {
+      return json({ error: "You do not have access to this class" }, 403);
+    }
+
+    const isAdmin = myProfile.role === "ADMIN" || myProfile.role === "DIRECTOR";
+    const isTeacherForClass = isAdmin || (myProfile.role === "TEACHER" && myProfile.name === targetClass.teacher_name);
+    const isStudentForClass = myProfile.name === targetClass.student_name;
+
+    if (action === "INCOMING_CALL" && !isTeacherForClass) {
+      return json({ error: "Only the assigned teacher (or an admin) can start this call" }, 403);
+    }
+    if (action !== "INCOMING_CALL" && !isTeacherForClass && !isStudentForClass) {
+      return json({ error: "You are not a participant in this class" }, 403);
+    }
+
+    const teacherName = targetClass.teacher_name;
+    const studentName = targetClass.student_name;
+    const roomName = targetClass.livekit_room_name || `quran-room-${classId}`;
+    const isRinging = action === "INCOMING_CALL";
+
+    // Privileged writes/lookups only happen server-side, from here on, using values we just
+    // verified ourselves - never values the client handed us directly.
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    await serviceClient
+      .from("active_calls")
+      .upsert(
+        {
+          id: `call_${classId}`,
+          class_id: classId,
+          teacher_name: teacherName,
+          student_name: studentName,
+          room_name: roomName,
           is_ringing: isRinging,
           updated_at: new Date().toISOString(),
-        }, { onConflict: "class_id" });
-    }
-
-    // Send FCM high-priority VoIP call notification if recipientToken and fcmServerKey present
-    let fcmDispatched = false;
-    if (recipientToken && fcmServerKey) {
-      const fcmResponse = await fetch("https://fcm.googleapis.com/fcm/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `key=${fcmServerKey}`,
         },
-        body: JSON.stringify({
-          to: recipientToken,
-          priority: "high",
-          data: {
-            action,
-            class_id,
-            teacher_name,
-            student_name,
-            room_name,
-          },
-        }),
-      });
+        { onConflict: "class_id" },
+      );
 
-      fcmDispatched = fcmResponse.ok;
+    let fcmDispatched = false;
+    if (isRinging && fcmServerKey) {
+      const { data: studentProfile } = await serviceClient
+        .from("profiles")
+        .select("fcm_token")
+        .eq("name", studentName)
+        .maybeSingle();
+      const recipientToken = studentProfile?.fcm_token;
+
+      if (recipientToken) {
+        const fcmResponse = await fetch("https://fcm.googleapis.com/fcm/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `key=${fcmServerKey}`,
+          },
+          body: JSON.stringify({
+            to: recipientToken,
+            priority: "high",
+            data: { action, class_id: classId, teacher_name: teacherName, student_name: studentName, room_name: roomName },
+          }),
+        });
+        fcmDispatched = fcmResponse.ok;
+      }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        action,
-        class_id,
-        fcmDispatched,
-        realtimeCallUpdated: true,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return json({ success: true, action, class_id: classId, fcmDispatched, realtimeCallUpdated: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: message }, 500);
   }
 });

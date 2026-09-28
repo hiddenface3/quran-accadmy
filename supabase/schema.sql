@@ -1,4 +1,11 @@
 -- Quran Academy Connect - Supabase Production Schema & Security Policies (RLS)
+--
+-- SECURITY POLICIES BELOW ARE SUPERSEDED - do not run them.
+-- Every policy here is `USING (true)` - fully public read/write/delete, gated
+-- only by possession of the anon key, which ships inside every APK. Table
+-- creation is still fine to run (or just re-run the migration, which is
+-- idempotent and creates the tables itself). For policies, use
+-- supabase/migrations/0001_lockdown_rls_and_auth.sql instead.
 
 -- 1. Profiles Table
 CREATE TABLE IF NOT EXISTS public.profiles (

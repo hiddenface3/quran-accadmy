@@ -1,5 +1,17 @@
 -- ==============================================================================
--- 🛡️ Supabase Row Level Security (RLS) Policies for Quran Academy Connect
+-- SUPERSEDED - do not run this file.
+-- It never actually took effect: it DROPs policies by name, but schema.sql's
+-- wide-open "Allow public ..." policies used different names and were never
+-- dropped, so they stayed active (Postgres OR-combines multiple permissive
+-- policies). It also assumes auth.email()/auth.uid() are populated, which they
+-- never were, since the app never used real Supabase Auth.
+-- Use supabase/migrations/0001_lockdown_rls_and_auth.sql instead - it drops
+-- this file's policies too and replaces everything with a version that actually
+-- works against a real authenticated session.
+-- ==============================================================================
+
+-- ==============================================================================
+-- Supabase Row Level Security (RLS) Policies for Quran Academy Connect
 -- ==============================================================================
 -- Purpose:
 -- 1. Enable Row Level Security (RLS) on all core academy tables.

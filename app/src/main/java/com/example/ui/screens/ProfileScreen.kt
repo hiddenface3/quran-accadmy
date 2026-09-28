@@ -58,9 +58,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import com.example.data.backend.SupabaseConfig
@@ -435,58 +432,6 @@ fun ProfileScreen(
         var supabaseKey by remember { mutableStateOf(SupabaseConfig.anonKey) }
         var liveKitUrl by remember { mutableStateOf(SupabaseConfig.liveKitServerUrl) }
         var liveKitKey by remember { mutableStateOf(SupabaseConfig.liveKitApiKey) }
-        var liveKitSecret by remember { mutableStateOf(SupabaseConfig.liveKitApiSecret) }
-
-        val sqlSchema = """
-            -- Quran Academy Real-Time Backend Schema
-            create table if not exists public.profiles (
-              id text primary key,
-              name text not null,
-              email text not null,
-              role text not null,
-              avatar_url text default '',
-              assigned_teacher_name text default '',
-              tajweed_level text default 'Beginner',
-              fcm_token text default '',
-              updated_at timestamp with time zone default timezone('utc'::text, now())
-            );
-            create index if not exists idx_profiles_fcm_token on public.profiles(fcm_token);
-
-            create table if not exists public.classes (
-              id text primary key,
-              title text not null,
-              teacher_name text not null,
-              teacher_title text default 'Certified Qari',
-              student_name text not null,
-              date text not null,
-              start_time text not null,
-              duration_minutes integer default 45,
-              status text default 'SCHEDULED',
-              description text default '',
-              livekit_room_name text not null,
-              surah_topic text default '',
-              updated_at timestamp with time zone default timezone('utc'::text, now())
-            );
-
-            create table if not exists public.active_calls (
-              id text primary key,
-              class_id text not null,
-              teacher_name text not null,
-              student_name text not null,
-              room_name text not null,
-              is_ringing boolean default false,
-              updated_at timestamp with time zone default timezone('utc'::text, now())
-            );
-
-            alter table public.profiles enable row level security;
-            create policy "Allow all profiles" on public.profiles for all using (true) with check (true);
-
-            alter table public.classes enable row level security;
-            create policy "Allow all classes" on public.classes for all using (true) with check (true);
-
-            alter table public.active_calls enable row level security;
-            create policy "Allow all calls" on public.active_calls for all using (true) with check (true);
-        """.trimIndent()
 
         AlertDialog(
             onDismissRequest = { showBackendConfigDialog = false },
@@ -519,24 +464,20 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedTextField(
-                            value = liveKitKey,
-                            onValueChange = { liveKitKey = it },
-                            label = { Text("LiveKit API Key") },
-                            placeholder = { Text("API...") },
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1
-                        )
-                        OutlinedTextField(
-                            value = liveKitSecret,
-                            onValueChange = { liveKitSecret = it },
-                            label = { Text("LiveKit Secret") },
-                            placeholder = { Text("Secret...") },
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1
-                        )
-                    }
+                    OutlinedTextField(
+                        value = liveKitKey,
+                        onValueChange = { liveKitKey = it },
+                        label = { Text("LiveKit API Key") },
+                        placeholder = { Text("API...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 1
+                    )
+                    Text(
+                        text = "The LiveKit secret is never entered on-device - it lives only in the livekit-token server function's environment.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF616161),
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                    )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -561,24 +502,17 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    OutlinedButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("Supabase Schema SQL", sqlSchema)
-                            clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "SQL Schema copied to clipboard!", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("📋 Copy Supabase SQL Tables Script", fontSize = 12.sp)
-                    }
+                    Text(
+                        text = "Database schema and security policies are managed via the versioned migration files in supabase/migrations, applied through the Supabase SQL Editor - not copy-pasted from here.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF616161)
+                    )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.saveLiveKitCredentials(liveKitUrl, liveKitKey, liveKitSecret)
+                        viewModel.saveLiveKitCredentials(liveKitUrl, liveKitKey)
                         viewModel.saveSupabaseCredentials(supabaseUrl, supabaseKey)
                         showBackendConfigDialog = false
                         Toast.makeText(context, "Credentials saved & active on this device!", Toast.LENGTH_SHORT).show()

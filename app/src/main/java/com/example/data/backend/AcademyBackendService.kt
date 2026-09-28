@@ -68,30 +68,39 @@ class AcademyBackendService {
             val baseWs = SupabaseConfig.projectUrl
                 .replace("https://", "wss://")
                 .replace("http://", "ws://")
-            val wsUrl = "$baseWs/realtime/v1/websocket?apikey=${SupabaseConfig.anonKey}&vsn=1.0.0"
+            // The user's own JWT (not the anon key) is sent as apikey so Realtime evaluates
+            // postgres_changes against THIS user's RLS visibility, not an anonymous one.
+            val userToken = SupabaseSession.bearerToken()
+            val wsUrl = "$baseWs/realtime/v1/websocket?apikey=$userToken&vsn=1.0.0"
 
             val request = Request.Builder().url(wsUrl).build()
             realtimeWebSocket = client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     Log.i(TAG, "Supabase Realtime WebSocket connected successfully")
-                    // Join active_calls postgres_changes topic
-                    val joinMessage = JSONObject().apply {
-                        put("topic", "realtime:public:active_calls")
-                        put("event", "phx_join")
-                        put("payload", JSONObject().apply {
-                            put("config", JSONObject().apply {
-                                put("postgres_changes", JSONArray().apply {
-                                    put(JSONObject().apply {
-                                        put("event", "*")
-                                        put("schema", "public")
-                                        put("table", "active_calls")
+
+                    fun joinTable(topicSuffix: String, table: String, ref: String) {
+                        val joinMessage = JSONObject().apply {
+                            put("topic", "realtime:public:$topicSuffix")
+                            put("event", "phx_join")
+                            put("payload", JSONObject().apply {
+                                put("access_token", userToken)
+                                put("config", JSONObject().apply {
+                                    put("postgres_changes", JSONArray().apply {
+                                        put(JSONObject().apply {
+                                            put("event", "*")
+                                            put("schema", "public")
+                                            put("table", table)
+                                        })
                                     })
                                 })
                             })
-                        })
-                        put("ref", "1")
+                            put("ref", ref)
+                        }
+                        webSocket.send(joinMessage.toString())
                     }
-                    webSocket.send(joinMessage.toString())
+
+                    joinTable("active_calls", "active_calls", "1")
+                    joinTable("messages", "messages", "2")
 
                     // Start heartbeat every 25s
                     realtimeHeartbeatJob = realtimeScope.launch {
@@ -113,70 +122,44 @@ class AcademyBackendService {
                     try {
                         val json = JSONObject(text)
                         val event = json.optString("event")
-                        if (event == "postgres_changes") {
-                            val payload = json.optJSONObject("payload")
-                            val data = payload?.optJSONObject("data")
-                            val record = data?.optJSONObject("record")
-                            if (record != null) {
-                                val isRinging = record.optBoolean("is_ringing", false)
-                                val classId = record.optString("class_id", "")
-                                val teacherName = record.optString("teacher_name", "Quran Teacher")
-                                val studentName = record.optString("student_name", "")
-                                val roomName = record.optString("room_name", "room_$classId")
+                        val topic = json.optString("topic")
+                        if (event != "postgres_changes") return
 
-                                if (classId == "chat") {
-                                    // Parse instant real-time chat message (<50ms delivery)
-                                    val id = record.optString("id", "msg_${System.currentTimeMillis()}")
-                                    var textMsg = roomName
-                                    var senderId = ""
-                                    var senderName = teacherName
-                                    var senderRole = UserRole.STUDENT
-                                    var receiverId = ""
-                                    var receiverName = studentName
-                                    var timestamp = "Now"
+                        val payload = json.optJSONObject("payload")
+                        val data = payload?.optJSONObject("data")
+                        val record = data?.optJSONObject("record") ?: return
 
-                                    try {
-                                        if (roomName.startsWith("{")) {
-                                            val p = JSONObject(roomName)
-                                            textMsg = p.optString("text", textMsg)
-                                            senderId = p.optString("senderId", "")
-                                            senderName = p.optString("senderName", teacherName)
-                                            val roleStr = p.optString("senderRole", "STUDENT")
-                                            senderRole = try { UserRole.valueOf(roleStr) } catch (_: Exception) { UserRole.STUDENT }
-                                            receiverId = p.optString("receiverId", "")
-                                            receiverName = p.optString("receiverName", studentName)
-                                            timestamp = p.optString("timestamp", timestamp)
-                                        }
-                                    } catch (_: Exception) {}
+                        if (topic == "realtime:public:messages") {
+                            val message = Message(
+                                id = record.optString("id", "msg_${System.currentTimeMillis()}"),
+                                senderId = record.optString("sender_id", ""),
+                                senderName = record.optString("sender_name", ""),
+                                senderRole = try {
+                                    UserRole.valueOf(record.optString("sender_role", "STUDENT"))
+                                } catch (_: Exception) { UserRole.STUDENT },
+                                receiverId = record.optString("receiver_id", ""),
+                                receiverName = record.optString("receiver_name", ""),
+                                text = record.optString("text", ""),
+                                timestamp = record.optString("timestamp", "Now"),
+                                isRead = record.optBoolean("is_read", true),
+                                isFromMe = false
+                            )
+                            onChatMessageReceived?.invoke(message)
+                            return
+                        }
 
-                                    val chatMsg = Message(
-                                        id = id,
-                                        senderId = senderId,
-                                        senderName = senderName,
-                                        senderRole = senderRole,
-                                        receiverId = receiverId,
-                                        receiverName = receiverName,
-                                        text = textMsg,
-                                        timestamp = timestamp,
-                                        isRead = true,
-                                        isFromMe = false
-                                    )
-                                    onChatMessageReceived?.invoke(chatMsg)
-                                    return
-                                }
-
-                                if (classId.isNotBlank()) {
-                                    onCallChanged(
-                                        ActiveCallInfo(
-                                            classId = classId,
-                                            teacherName = teacherName,
-                                            studentName = studentName,
-                                            roomName = roomName,
-                                            isRinging = isRinging
-                                        )
-                                    )
-                                }
-                            }
+                        if (topic == "realtime:public:active_calls") {
+                            val classId = record.optString("class_id", "")
+                            if (classId.isBlank()) return
+                            onCallChanged(
+                                ActiveCallInfo(
+                                    classId = classId,
+                                    teacherName = record.optString("teacher_name", "Quran Teacher"),
+                                    studentName = record.optString("student_name", ""),
+                                    roomName = record.optString("room_name", "room_$classId"),
+                                    isRinging = record.optBoolean("is_ringing", false)
+                                )
+                            )
                         }
                     } catch (e: Exception) {
                         Log.w(TAG, "Realtime message parse exception: ${e.message}")
@@ -219,7 +202,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Prefer", "resolution=merge-duplicates")
                 .post(body)
@@ -258,7 +241,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .addHeader("Content-Type", "application/json")
                 .patch(body)
                 .build()
@@ -277,38 +260,6 @@ class AcademyBackendService {
     }
 
     /**
-     * Query target student's direct device FCM token for 1-to-1 VoIP calling
-     */
-    suspend fun getFcmTokenForStudent(studentName: String): String? = withContext(Dispatchers.IO) {
-        if (studentName.isBlank()) return@withContext null
-        try {
-            val cleanName = studentName.trim()
-            val url = "${SupabaseConfig.projectUrl}/rest/v1/profiles?name=eq.$cleanName&select=fcm_token"
-            val request = Request.Builder()
-                .url(url)
-                .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
-                .get()
-                .build()
-
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val raw = response.body?.string() ?: "[]"
-                    val jsonArray = JSONArray(raw)
-                    if (jsonArray.length() > 0) {
-                        val token = jsonArray.getJSONObject(0).optString("fcm_token", "")
-                        if (token.isNotBlank()) return@withContext token
-                    }
-                }
-            }
-            null
-        } catch (e: Exception) {
-            Log.w(TAG, "Error querying student FCM token: ${e.message}")
-            null
-        }
-    }
-
-    /**
      * Fetch all registered students and teachers from backend
      */
     suspend fun fetchProfiles(): Result<Pair<List<StudentInfo>, List<TeacherInfo>>> = withContext(Dispatchers.IO) {
@@ -317,7 +268,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .get()
                 .build()
 
@@ -409,7 +360,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Prefer", "resolution=merge-duplicates")
                 .post(body)
@@ -436,7 +387,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .get()
                 .build()
 
@@ -507,7 +458,7 @@ class AcademyBackendService {
             val updateReq = Request.Builder()
                 .url(updateClassUrl)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .patch(updateBody)
                 .build()
 
@@ -528,22 +479,17 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(activeCallUrl)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Prefer", "resolution=merge-duplicates")
                 .post(body)
                 .build()
 
-            // Also dispatch high-priority direct FCM push to wake up student's phone
+            // Also dispatch high-priority push to wake up the student's phone. The edge
+            // function resolves the recipient's device token itself after verifying (via our
+            // JWT) that we're really the teacher on this class.
             try {
-                val targetStudentToken = getFcmTokenForStudent(qClass.studentName)
-                com.example.service.FcmNotificationSender.sendIncomingCallPush(
-                    classId = qClass.id,
-                    teacherName = teacherName,
-                    studentName = qClass.studentName,
-                    roomName = qClass.liveKitRoomName,
-                    targetDeviceToken = targetStudentToken ?: ""
-                )
+                com.example.service.FcmNotificationSender.sendIncomingCallPush(classId = qClass.id)
             } catch (fcmEx: Exception) {
                 Log.w(TAG, "FCM Push dispatch error: ${fcmEx.message}")
             }
@@ -577,7 +523,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(activeCallUrl)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .patch(body)
                 .build()
 
@@ -598,7 +544,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .get()
                 .build()
 
@@ -653,7 +599,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .delete()
                 .build()
 
@@ -677,7 +623,7 @@ class AcademyBackendService {
                 val delActiveCallReq = Request.Builder()
                     .url(activeCallsUrl)
                     .addHeader("apikey", SupabaseConfig.anonKey)
-                    .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                    .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                     .delete()
                     .build()
                 client.newCall(delActiveCallReq).execute().close()
@@ -688,7 +634,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .delete()
                 .build()
 
@@ -714,7 +660,7 @@ class AcademyBackendService {
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .patch(body)
                 .build()
 
@@ -728,79 +674,39 @@ class AcademyBackendService {
     }
 
     /**
-     * Send a chat message via dedicated Supabase messages storage
+     * Send a chat message to the real public.messages table (no more disguising chat as fake
+     * active_calls rows - that hack also inherited active_calls' looser access policy).
      */
     suspend fun sendChatMessage(msg: Message): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            // 1. Try dedicated academy_messages table first (Industry Standard)
-            val dedicatedUrl = "${SupabaseConfig.projectUrl}/rest/v1/academy_messages"
-            val dedicatedJson = JSONObject().apply {
+            val url = "${SupabaseConfig.projectUrl}/rest/v1/messages"
+            val json = JSONObject().apply {
                 put("id", msg.id)
-                put("class_id", "chat")
                 put("sender_id", msg.senderId)
                 put("sender_name", msg.senderName)
                 put("sender_role", msg.senderRole.name)
                 put("receiver_id", msg.receiverId)
                 put("receiver_name", msg.receiverName)
-                put("message_text", msg.text)
-                put("timestamp", msg.timestamp)
-            }
-            val dedicatedBody = dedicatedJson.toString().toRequestBody(JSON_MEDIA)
-            val dedicatedReq = Request.Builder()
-                .url(dedicatedUrl)
-                .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Prefer", "resolution=merge-duplicates")
-                .post(dedicatedBody)
-                .build()
-
-            var isDedicatedSuccess = false
-            try {
-                client.newCall(dedicatedReq).execute().use { resp ->
-                    if (resp.isSuccessful || resp.code in 200..204) {
-                        isDedicatedSuccess = true
-                    }
-                }
-            } catch (_: Exception) {}
-
-            if (isDedicatedSuccess) {
-                return@withContext Result.success(true)
-            }
-
-            // 2. Backward compatibility fallback to active_calls
-            val url = "${SupabaseConfig.projectUrl}/rest/v1/active_calls"
-            val payloadObj = JSONObject().apply {
                 put("text", msg.text)
-                put("senderId", msg.senderId)
-                put("senderName", msg.senderName)
-                put("senderRole", msg.senderRole.name)
-                put("receiverId", msg.receiverId)
-                put("receiverName", msg.receiverName)
                 put("timestamp", msg.timestamp)
+                put("is_read", msg.isRead)
             }
-
-            val json = JSONObject().apply {
-                put("id", msg.id)
-                put("class_id", "chat")
-                put("teacher_name", msg.senderName)
-                put("student_name", msg.receiverName.ifBlank { msg.receiverId })
-                put("room_name", payloadObj.toString())
-                put("is_ringing", false)
-            }
-
             val body = json.toString().toRequestBody(JSON_MEDIA)
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Prefer", "resolution=merge-duplicates")
                 .post(body)
                 .build()
 
             client.newCall(request).execute().use { response ->
-                Result.success(response.isSuccessful || response.code in 200..204)
+                if (response.isSuccessful || response.code in 200..204) {
+                    Result.success(true)
+                } else {
+                    Result.failure(Exception("HTTP ${response.code}: ${response.body?.string()}"))
+                }
             }
         } catch (e: Exception) {
             Log.w(TAG, "Send chat message error: ${e.message}")
@@ -809,15 +715,16 @@ class AcademyBackendService {
     }
 
     /**
-     * Fetch all chat messages synchronized across devices
+     * Fetch chat history for the signed-in user from public.messages. RLS scopes this to
+     * conversations the caller is actually a participant in (or all, for admins).
      */
     suspend fun fetchChatMessages(): Result<List<Message>> = withContext(Dispatchers.IO) {
         try {
-            val url = "${SupabaseConfig.projectUrl}/rest/v1/active_calls?class_id=eq.chat&is_ringing=eq.false&order=updated_at.asc&limit=150"
+            val url = "${SupabaseConfig.projectUrl}/rest/v1/messages?select=*&order=created_at.asc&limit=200"
             val request = Request.Builder()
                 .url(url)
                 .addHeader("apikey", SupabaseConfig.anonKey)
-                .addHeader("Authorization", "Bearer ${SupabaseConfig.anonKey}")
+                .addHeader("Authorization", "Bearer ${SupabaseSession.bearerToken()}")
                 .get()
                 .build()
 
@@ -829,45 +736,19 @@ class AcademyBackendService {
 
                     for (i in 0 until jsonArray.length()) {
                         val obj = jsonArray.getJSONObject(i)
-                        val id = obj.optString("id", "msg_$i")
-                        val teacherName = obj.optString("teacher_name", "")
-                        val studentName = obj.optString("student_name", "")
-                        val roomName = obj.optString("room_name", "")
-
-                        // Try to parse structured JSON from room_name
-                        var text = roomName
-                        var senderId = ""
-                        var senderName = teacherName
-                        var senderRole = UserRole.STUDENT
-                        var receiverId = ""
-                        var receiverName = studentName
-                        var timestamp = "Now"
-
-                        try {
-                            if (roomName.startsWith("{")) {
-                                val p = JSONObject(roomName)
-                                text = p.optString("text", text)
-                                senderId = p.optString("senderId", "")
-                                senderName = p.optString("senderName", teacherName)
-                                val roleStr = p.optString("senderRole", "STUDENT")
-                                senderRole = try { UserRole.valueOf(roleStr) } catch (_: Exception) { UserRole.STUDENT }
-                                receiverId = p.optString("receiverId", "")
-                                receiverName = p.optString("receiverName", studentName)
-                                timestamp = p.optString("timestamp", timestamp)
-                            }
-                        } catch (_: Exception) {}
-
                         messages.add(
                             Message(
-                                id = id,
-                                senderId = senderId,
-                                senderName = senderName,
-                                senderRole = senderRole,
-                                receiverId = receiverId,
-                                receiverName = receiverName,
-                                text = text,
-                                timestamp = timestamp,
-                                isRead = true,
+                                id = obj.optString("id", "msg_$i"),
+                                senderId = obj.optString("sender_id", ""),
+                                senderName = obj.optString("sender_name", ""),
+                                senderRole = try {
+                                    UserRole.valueOf(obj.optString("sender_role", "STUDENT"))
+                                } catch (_: Exception) { UserRole.STUDENT },
+                                receiverId = obj.optString("receiver_id", ""),
+                                receiverName = obj.optString("receiver_name", ""),
+                                text = obj.optString("text", ""),
+                                timestamp = obj.optString("timestamp", "Now"),
+                                isRead = obj.optBoolean("is_read", true),
                                 isFromMe = false
                             )
                         )

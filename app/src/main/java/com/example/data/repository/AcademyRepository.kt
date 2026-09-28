@@ -466,31 +466,6 @@ class AcademyRepository {
         }
     }
 
-    fun switchRole(role: UserRole) {
-        val current = _currentUser.value
-        val updated = when (role) {
-            UserRole.STUDENT -> current.copy(
-                id = "student_zaid_01",
-                name = "Zaid Ahmed",
-                email = "zaid.ahmed@student.quranacademy.com",
-                role = UserRole.STUDENT
-            )
-            UserRole.TEACHER -> current.copy(
-                id = "teacher_abdullah_01",
-                name = "Sheikh Abdullah Al-Mansoor",
-                email = "abdullah.mansoor@quranacademy.com",
-                role = UserRole.TEACHER
-            )
-            UserRole.ADMIN -> current.copy(
-                id = "admin_ibrahim_01",
-                name = "Ustadh Ibrahim (Principal)",
-                email = "admin@quranacademy.com",
-                role = UserRole.ADMIN
-            )
-        }
-        _currentUser.value = updated
-    }
-
     fun markClassAsLive(classId: String) {
         _classes.value = _classes.value.map {
             if (it.id == classId) it.copy(status = ClassStatus.LIVE_NOW) else it

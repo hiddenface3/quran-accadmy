@@ -39,13 +39,42 @@ class AppPreferences(context: Context) {
 
         private const val KEY_LIVEKIT_URL = "livekit_url"
         private const val KEY_LIVEKIT_KEY = "livekit_key"
-        private const val KEY_LIVEKIT_SECRET = "livekit_secret"
 
         private const val KEY_SUPABASE_URL = "supabase_url"
         private const val KEY_SUPABASE_KEY = "supabase_key"
-        private const val KEY_REGISTERED_EMAILS = "registered_emails"
         private const val KEY_FCM_TOKEN = "fcm_device_token"
         private const val KEY_ACTIVE_CALL_CLASS_ID = "active_call_class_id"
+
+        private const val KEY_SESSION_ACCESS_TOKEN = "session_access_token"
+        private const val KEY_SESSION_REFRESH_TOKEN = "session_refresh_token"
+        private const val KEY_SESSION_USER_ID = "session_supabase_user_id"
+    }
+
+    /**
+     * Real Supabase Auth session (JWT access/refresh tokens). This is the source of
+     * truth for who the user is on the backend - the local UserProfile cache below is
+     * only a UI convenience, never a substitute for a verified server session.
+     */
+    fun saveSession(accessToken: String, refreshToken: String, supabaseUserId: String) {
+        prefs.edit().apply {
+            putString(KEY_SESSION_ACCESS_TOKEN, accessToken)
+            putString(KEY_SESSION_REFRESH_TOKEN, refreshToken)
+            putString(KEY_SESSION_USER_ID, supabaseUserId)
+            apply()
+        }
+    }
+
+    fun getAccessToken(): String? = prefs.getString(KEY_SESSION_ACCESS_TOKEN, null)
+    fun getRefreshToken(): String? = prefs.getString(KEY_SESSION_REFRESH_TOKEN, null)
+    fun getSupabaseUserId(): String? = prefs.getString(KEY_SESSION_USER_ID, null)
+
+    fun clearSession() {
+        prefs.edit().apply {
+            remove(KEY_SESSION_ACCESS_TOKEN)
+            remove(KEY_SESSION_REFRESH_TOKEN)
+            remove(KEY_SESSION_USER_ID)
+            apply()
+        }
     }
 
     fun saveFcmToken(token: String) {
@@ -58,34 +87,7 @@ class AppPreferences(context: Context) {
         return prefs.getString(KEY_FCM_TOKEN, "") ?: ""
     }
 
-    fun getRegisteredEmails(): Set<String> {
-        val defaultKnown = setOf(
-            "mytest5072@gmail.com",
-            "itskhan7733@gmail.com",
-            "swabi5072@gmail.com",
-            "admin@quranacademy.com",
-            "student.quran@gmail.com",
-            "teacher.abdullah@gmail.com"
-        )
-        val saved = prefs.getStringSet(KEY_REGISTERED_EMAILS, emptySet()) ?: emptySet()
-        return defaultKnown + saved.map { it.lowercase().trim() }
-    }
-
-    fun addRegisteredEmail(email: String) {
-        if (email.isBlank()) return
-        val current = (prefs.getStringSet(KEY_REGISTERED_EMAILS, emptySet()) ?: emptySet()).toMutableSet()
-        current.add(email.lowercase().trim())
-        prefs.edit().putStringSet(KEY_REGISTERED_EMAILS, current).apply()
-    }
-
-    fun isEmailRegistered(email: String): Boolean {
-        val normalized = email.lowercase().trim()
-        if (normalized.isBlank()) return false
-        return getRegisteredEmails().contains(normalized)
-    }
-
     fun saveUser(user: UserProfile) {
-        addRegisteredEmail(user.email)
         if (user.fcmToken.isNotBlank()) {
             saveFcmToken(user.fcmToken)
         }
@@ -148,32 +150,27 @@ class AppPreferences(context: Context) {
             remove(KEY_AVATAR_URL)
             apply()
         }
+        clearSession()
     }
 
-    fun saveLiveKitConfig(serverUrl: String, apiKey: String, apiSecret: String) {
+    fun saveLiveKitConfig(serverUrl: String, apiKey: String) {
         prefs.edit().apply {
             putString(KEY_LIVEKIT_URL, serverUrl)
             putString(KEY_LIVEKIT_KEY, apiKey)
-            putString(KEY_LIVEKIT_SECRET, apiSecret)
             apply()
         }
         SupabaseConfig.liveKitServerUrl = serverUrl
         SupabaseConfig.liveKitApiKey = apiKey
-        SupabaseConfig.liveKitApiSecret = apiSecret
     }
 
     fun loadConfigIntoMemory() {
         val lkUrl = prefs.getString(KEY_LIVEKIT_URL, null)
         val lkKey = prefs.getString(KEY_LIVEKIT_KEY, null)
-        val lkSecret = prefs.getString(KEY_LIVEKIT_SECRET, null)
         if (!lkUrl.isNullOrBlank() && !lkUrl.contains("quran-academy.livekit.cloud")) {
             SupabaseConfig.liveKitServerUrl = lkUrl
         }
         if (!lkKey.isNullOrBlank() && lkKey != "devkey") {
             SupabaseConfig.liveKitApiKey = lkKey
-        }
-        if (!lkSecret.isNullOrBlank() && lkSecret != "secret") {
-            SupabaseConfig.liveKitApiSecret = lkSecret
         }
 
         val sbUrl = prefs.getString(KEY_SUPABASE_URL, null)
