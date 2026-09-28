@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quran Academy Admin</title>
+<style>
+  :root {
+    --emerald-dark: #09392B;
+    --emerald: #0E5B44;
+    --emerald-light: #C5EEDB;
+    --gold: #FFD54F;
+    --gold-dark: #C89B3C;
+    --bg: #FAF9F5;
+    --surface: #FFFFFF;
+    --border: #E5E7E0;
+    --text: #1A2420;
+    --text-muted: #5B6560;
+    --danger: #D32F2F;
+    --success: #2E7D32;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  a { color: inherit; }
+
+  /* ---------- Login screen ---------- */
+  #loginScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, var(--emerald-dark), var(--emerald));
+    padding: 24px;
+  }
+  .login-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 32px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .login-crest {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 28px;
+  }
+  .login-card h1 {
+    text-align: center;
+    font-size: 19px;
+    margin: 0 0 4px;
+    color: var(--emerald-dark);
+  }
+  .login-card p.sub {
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin: 0 0 24px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin: 14px 0 6px;
+  }
+  input[type=email], input[type=password], input[type=text], input[type=number], select {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    font-size: 14px;
+    background: #fff;
+    color: var(--text);
+  }
+  input:focus, select:focus { outline: none; border-color: var(--emerald); }
+  button {
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+  }
+  .btn-primary {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--emerald);
+    color: #fff;
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+  .btn-primary:disabled { opacity: 0.6; cursor: default; }
+  .error-banner {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    color: #991B1B;
+    font-size: 12.5px;
+  }
+
+  /* ---------- App shell ---------- */
+  #appScreen { display: none; }
+  header.app-header {
+    background: var(--emerald-dark);
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header.app-header .title { display: flex; align-items: center; gap: 10px; }
+  header.app-header .title .crest {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--gold);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  header.app-header h1 { font-size: 16px; margin: 0; }
+  header.app-header .who { font-size: 12px; color: var(--emerald-light); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .stat-card .num { font-size: 26px; font-weight: 700; color: var(--emerald); }
+  .stat-card .label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .tabs { display: flex; gap: 4px; background: #EFEEE8; border-radius: 12px; padding: 4px; margin-bottom: 18px; width: fit-content; }
+  .tab-btn {
+    padding: 9px 18px;
+    border-radius: 9px;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .tab-btn.active { background: var(--emerald); color: #fff; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .panel-header h2 { font-size: 16px; margin: 0; }
+  .btn-accent {
+    background: var(--gold-dark);
+    color: #fff;
+    padding: 9px 16px;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 14px; overflow: hidden; border: 1px solid var(--border); }
+  th, td { text-align: left; padding: 11px 14px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  th { background: #F5F4EF; color: var(--text-muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr:last-child td { border-bottom: none; }
+  td.name { font-weight: 600; }
+  td.muted { color: var(--text-muted); }
+  .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn-sm {
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: #EEF6F1;
+    color: var(--emerald);
+  }
+  .btn-sm.danger { background: #FDECEC; color: var(--danger); }
+  .btn-sm.warn { background: #FFF6E5; color: #92600A; }
+
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge.scheduled { background: #E8F0FE; color: #1A56C4; }
+  .badge.live { background: #FDECEC; color: var(--danger); }
+  .badge.completed { background: #EAF6EC; color: var(--success); }
+  .badge.cancelled { background: #F0F0F0; color: #666; }
+
+  .empty-state { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(9,57,43,0.45);
+    align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%; max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .modal h3 { margin: 0 0 4px; font-size: 16px; }
+  .modal p.sub { margin: 0 0 16px; font-size: 12.5px; color: var(--text-muted); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  .btn-outline {
+    padding: 10px 16px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .toast {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--emerald-dark);
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    display: none;
+    z-index: 100;
+    max-width: 90vw;
+  }
+  .toast.show { display: block; }
+  .toast.error { background: var(--danger); }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: #F5F4EF;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 640px) {
+    .row-2 { grid-template-columns: 1fr; }
+    table, thead, tbody, th, td, tr { display: block; }
+    thead { display: none; }
+    tr { border-bottom: 1px solid var(--border); padding: 10px 0; }
+    td { border: none; padding: 4px 14px; }
+    td:before { content: attr(data-label); font-weight: 600; color: var(--text-muted); display: inline-block; width: 110px; font-size: 11px; text-transform: uppercase; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-crest">📖</div>
+    <h1>Quran Academy Admin</h1>
+    <p class="sub">Sign in with an administrator account</p>
+    <form id="loginForm">
+      <label>Email</label>
+      <input type="email" id="loginEmail" autocomplete="username" required />
+      <label>Password</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" required />
+      <button type="submit" class="btn-primary" id="loginBtn">Sign In</button>
+      <div id="loginError" class="error-banner" style="display:none;"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="appScreen">
+  <header class="app-header">
+    <div class="title">
+      <div class="crest">📖</div>
+      <div>
+        <h1>Quran Academy Admin</h1>
+        <div class="who" id="whoLabel"></div>
+      </div>
+    </div>
+    <button class="btn-ghost" id="signOutBtn">Sign Out</button>
+  </header>
+
+  <main>
+    <div class="stats-row">
+      <div class="stat-card"><div class="num" id="statStudents">-</div><div class="label">Students</div></div>
+      <div class="stat-card"><div class="num" id="statTeachers">-</div><div class="label">Teachers</div></div>
+      <div class="stat-card"><div class="num" id="statClasses">-</div><div class="label">Classes</div></div>
+      <div class="stat-card"><div class="num" id="statLive">-</div><div class="label">Live Now</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="students">Students</button>
+      <button class="tab-btn" data-tab="teachers">Teachers</button>
+      <button class="tab-btn" data-tab="classes">Classes</button>
+    </div>
+
+    <!-- Students -->
+    <section class="panel active" id="panel-students">
+      <div class="panel-header">
+        <h2>Student Roster</h2>
+      </div>
+      <div id="studentsTableWrap"></div>
+    </section>
+
+    <!-- Teachers -->
+    <section class="panel" id="panel-teachers">
+      <div class="panel-header">
+        <h2>Teachers Directory</h2>
+      </div>
+      <div id="teachersTableWrap"></div>
+    </section>
+
+    <!-- Classes -->
+    <section class="panel" id="panel-classes">
+      <div class="panel-header">
+        <h2>Class Operations</h2>
+        <button class="btn-accent" id="newClassBtn">+ New Class</button>
+      </div>
+      <div class="hint">New classes always link the real student/teacher account (by id), not just a typed name - that's what makes calls and RLS actually work for them.</div>
+      <div id="classesTableWrap"></div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ New Class Modal ============ -->
+<div class="modal-backdrop" id="classModalBackdrop">
+  <div class="modal">
+    <h3>Schedule New Class</h3>
+    <p class="sub">Pick real registered accounts - free-typed names won't work.</p>
+    <form id="classForm">
+      <label>Class Title</label>
+      <input type="text" id="classTitle" required value="Quran Tajweed Recitation" />
+      <label>Student</label>
+      <select id="classStudent" required></select>
+      <label>Teacher</label>
+      <select id="classTeacher" required></select>
+      <label>Surah / Lesson Topic</label>
+      <input type="text" id="classTopic" required value="Surah Al-Mulk (Ayah 1-15)" />
+      <div class="row-2">
+        <div>
+          <label>Date</label>
+          <input type="text" id="classDate" required value="Today" />
+        </div>
+        <div>
+          <label>Time</label>
+          <input type="text" id="classTime" required value="6:00 PM" />
+        </div>
+      </div>
+      <label>Duration (minutes)</label>
+      <input type="number" id="classDuration" required value="45" />
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" id="classModalCancel">Cancel</button>
+        <button type="submit" class="btn-primary" style="width:auto; margin-top:0;">Schedule Class</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Same public project coordinates the Android app ships with. The anon key is meant to be
+  // public - Supabase's security model is Postgres RLS, not key secrecy. Everything this page
+  // can do is bounded by the RLS policies in supabase/migrations, exactly like the app.
+  const SUPABASE_URL = "https://amcdmiioovbhzkjqxdrk.supabase.co";
+  const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtY2RtaWlvb3ZiaHpranF4ZHJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTU1ODUsImV4cCI6MjEwNTkzMTU4NX0.sSLLbeVJnGKdW8491p_z9IssJJsWM1tWDS5gOwOvGxY";
+
+  const LS_KEY = "qac_admin_session_v1";
+
+  let session = null; // { access_token, refresh_token, user_id, email }
+  let students = [];
+  let teachers = [];
+  let classes = [];
+
+  // ---------- persistence ----------
+  function loadSession() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+  }
+  function saveSession(s) {
+    session = s;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch (_) {}
+  }
+  function clearSession() {
+    session = null;
+    try { localStorage.removeItem(LS_KEY); } catch (_) {}
+  }
+
+  // ---------- toast ----------
+  let toastTimer = null;
+  function toast(msg, isError) {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.className = "toast show" + (isError ? " error" : "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = "toast"; }, 3200);
+  }
+
+  // ---------- low-level REST ----------
+  async function authRequest(path, body) {
+    const resp = await fetch(SUPABASE_URL + path, {
+      method: "POST",
+      headers: { "apikey": ANON_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      throw new Error(data.error_description || data.msg || data.error || "Request failed");
+    }
+    return data;
+  }
+
+  async function refreshIfNeeded() {
+    if (!session || !session.refresh_token) return false;
+    try {
+      const data = await authRequest("/auth/v1/token?grant_type=refresh_token", { refresh_token: session.refresh_token });
+      saveSession({ access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id, email: data.user.email });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /** REST call to PostgREST, with one silent refresh-and-retry on 401. */
+  async function api(path, options = {}) {
+    const doFetch = () => fetch(SUPABASE_URL + "/rest/v1" + path, {
+      method: options.method || "GET",
+      headers: Object.assign({
+        "apikey": ANON_KEY,
+        "Authorization": "Bearer " + (session ? session.access_token : ANON_KEY),
+        "Content-Type": "application/json",
+        "Prefer": options.prefer || "return=representation",
+      }, options.headers || {}),
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+
+    let resp = await doFetch();
+    if (resp.status === 401 && await refreshIfNeeded()) {
+      resp = await doFetch();
+    }
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(() => "");
+      throw new Error("Request failed (" + resp.status + "): " + errBody);
+    }
+    const text = await resp.text();
+    return text ? JSON.parse(text) : null;
+  }
+
+  // ---------- auth flow ----------
+  async function signIn(email, password) {
+    const data = await authRequest("/auth/v1/token?grant_type=password", { email, password });
+    saveSession({ access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id, email: data.user.email });
+  }
+
+  async function fetchOwnProfile() {
+    const rows = await api("/profiles?id=eq." + encodeURIComponent(session.user_id) + "&select=*");
+    return rows && rows[0] ? rows[0] : null;
+  }
+
+  async function signOut() {
+    try {
+      if (session) {
+        await fetch(SUPABASE_URL + "/auth/v1/logout", {
+          method: "POST",
+          headers: { "apikey": ANON_KEY, "Authorization": "Bearer " + session.access_token },
+        });
+      }
+    } catch (_) {}
+    clearSession();
+    showLogin();
+  }
+
+  // ---------- screens ----------
+  function showLogin() {
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("appScreen").style.display = "none";
+  }
+  function showApp(profile) {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appScreen").style.display = "block";
+    document.getElementById("whoLabel").textContent = profile.name + " · " + profile.email + " · " + profile.role;
+    refreshAll();
+  }
+
+  // ---------- data loading ----------
+  async function refreshAll() {
+    try {
+      const profiles = await api("/profiles?select=*&order=name.asc");
+      students = profiles.filter(p => p.role === "STUDENT");
+      teachers = profiles.filter(p => p.role === "TEACHER");
+      classes = await api("/classes?select=*&order=created_at.desc");
+      renderStats();
+      renderStudents();
+      renderTeachers();
+      renderClasses();
+    } catch (e) {
+      toast("Could not load data: " + e.message, true);
+    }
+  }
+
+  function renderStats() {
+    document.getElementById("statStudents").textContent = students.length;
+    document.getElementById("statTeachers").textContent = teachers.length;
+    document.getElementById("statClasses").textContent = classes.length;
+    document.getElementById("statLive").textContent = classes.filter(c => c.status === "LIVE_NOW").length;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function teacherOptions(selectedName) {
+    return teachers.map(t => `<option value="${escapeHtml(t.id)}" data-name="${escapeHtml(t.name)}"${t.name === selectedName ? " selected" : ""}>${escapeHtml(t.name)} (${escapeHtml(t.email)})</option>`).join("");
+  }
+
+  function renderStudents() {
+    const wrap = document.getElementById("studentsTableWrap");
+    if (students.length === 0) {
+      wrap.innerHTML = `<div class="empty-state">No students have signed up yet.</div>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Assigned Teacher</th><th>Tajweed Level</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${students.map(s => `
+            <tr>
+              <td class="name" data-label="Name">${escapeHtml(s.name)}</td>
+              <td class="muted" data-label="Email">${escapeHtml(s.email)}</td>
+              <td data-label="Teacher">
+                <select data-assign-teacher="${escapeHtml(s.id)}">
+                  <option value="">- none -</option>
+                  ${teacherOptions(s.assigned_teacher_name)}
+                </select>
+              </td>
+              <td class="muted" data-label="Level">${escapeHtml(s.tajweed_level || "-")}</td>
+              <td data-label="Actions">
+                <div class="row-actions">
+                  <button class="btn-sm warn" data-promote="${escapeHtml(s.id)}">Make Teacher</button>
+                  <button class="btn-sm danger" data-delete-profile="${escapeHtml(s.id)}" data-name="${escapeHtml(s.name)}">Delete</button>
+                </div>
+              </td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+
+    wrap.querySelectorAll("[data-assign-teacher]").forEach(sel => {
+      sel.addEventListener("change", async () => {
+        const studentId = sel.getAttribute("data-assign-teacher");
+        const opt = sel.selectedOptions[0];
+        const teacherName = opt ? (opt.getAttribute("data-name") || "") : "";
+        try {
+          await api("/profiles?id=eq." + encodeURIComponent(studentId), { method: "PATCH", body: { assigned_teacher_name: teacherName } });
+          toast("Teacher assignment updated.");
+          await refreshAll();
+        } catch (e) { toast("Failed: " + e.message, true); }
+      });
+    });
+    wrap.querySelectorAll("[data-promote]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Promote this student to Teacher? This grants them the Teacher role.")) return;
+        try {
+          await api("/profiles?id=eq." + encodeURIComponent(btn.getAttribute("data-promote")), { method: "PATCH", body: { role: "TEACHER" } });
+          toast("Promoted to Teacher.");
+          await refreshAll();
+        } catch (e) { toast("Failed: " + e.message, true); }
+      });
+    });
+    wrap.querySelectorAll("[data-delete-profile]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const name = btn.getAttribute("data-name");
+        if (!confirm(`Delete ${name}'s profile? This does not remove their login, only their academy record.`)) return;
+        try {
+          await api("/profiles?id=eq." + encodeURIComponent(btn.getAttribute("data-delete-profile")), { method: "DELETE" });
+          toast("Profile deleted.");
+          await refreshAll();
+        } catch (e) { toast("Failed: " + e.message, true); }
+      });
+    });
+  }
+
+  function renderTeachers() {
+    const wrap = document.getElementById("teachersTableWrap");
+    if (teachers.length === 0) {
+      wrap.innerHTML = `<div class="empty-state">No teachers have signed up yet. Promote a student above, or have them sign up and promote them here.</div>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Assigned Students</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${teachers.map(t => {
+            const count = students.filter(s => (s.assigned_teacher_name || "").trim().toLowerCase() === t.name.trim().toLowerCase()).length;
+            return `
+            <tr>
+              <td class="name" data-label="Name">${escapeHtml(t.name)}</td>
+              <td class="muted" data-label="Email">${escapeHtml(t.email)}</td>
+              <td data-label="Students">${count}</td>
+              <td data-label="Actions">
+                <div class="row-actions">
+                  <button class="btn-sm" data-make-admin="${escapeHtml(t.id)}">Make Admin</button>
+                  <button class="btn-sm warn" data-demote="${escapeHtml(t.id)}">Make Student</button>
+                  <button class="btn-sm danger" data-delete-profile="${escapeHtml(t.id)}" data-name="${escapeHtml(t.name)}">Delete</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>`;
+
+    wrap.querySelectorAll("[data-make-admin]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Grant this teacher full Admin access?")) return;
+        try {
+          await api("/profiles?id=eq." + encodeURIComponent(btn.getAttribute("data-make-admin")), { method: "PATCH", body: { role: "ADMIN" } });
+          toast("Promoted to Admin.");
+          await refreshAll();
+        } catch (e) { toast("Failed: " + e.message, true); }
+      });
+    });
+    wrap.querySelectorAll("[data-demote]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Change this teacher back to a Student account?")) return;
+        try {
+          await api("/profiles?id=eq." + encodeURIComponent(btn.getAttribute("data-demote")), { method: "PATCH", body: { role: "STUDENT" } });
+          toast("Changed to Student.");
+          await refreshAll();
+        } catch (e) { toast("Failed: " + e.message, true); }
+      });
+    });
+    wrap.querySelectorAll("[data-delete-profile]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const name = btn.getAttribute("data-name");
+        if (!confirm(`Delete ${name}'s profile? This does not remove their login, only their academy record.`)) return;
+        try {
+          await api("/profiles?id=eq." + encodeURIComponent(btn.getAttribute("data-delete-profile")), { method: "DELETE" });
+          toast("Profile deleted.");
+          await refreshAll();
+        } catch (e) { toast("Failed: " + e.message, true); }
+      });
+    });
+  }
+
+  function statusBadge(status) {
+    const map = { SCHEDULED: "scheduled", LIVE_NOW: "live", COMPLETED: "completed", CANCELLED: "cancelled" };
+    const cls = map[status] || "scheduled";
+    return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
+  }
+
+  function renderClasses() {
+    const wrap = document.getElementById("classesTableWrap");
+    if (classes.length === 0) {
+      wrap.innerHTML = `<div class="empty-state">No classes scheduled yet.</div>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <table>
+        <thead><tr><th>Title</th><th>Teacher</th><th>Student</th><th>When</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${classes.map(c => `
+            <tr>
+              <td class="name" data-label="Title">${escapeHtml(c.title)}</td>
+              <td data-label="Teacher">${escapeHtml(c.teacher_name)}${c.teacher_id ? "" : ' <span class="muted">(name only)</span>'}</td>
+              <td data-label="Student">${escapeHtml(c.student_name)}${c.student_id ? "" : ' <span class="muted">(name only)</span>'}</td>
+              <td class="muted" data-label="When">${escapeHtml(c.date)} · ${escapeHtml(c.start_time)}</td>
+              <td data-label="Status">${statusBadge(c.status)}</td>
+              <td data-label="Actions">
+                <div class="row-actions">
+                  ${c.status !== "CANCELLED" && c.status !== "COMPLETED" ? `<button class="btn-sm warn" data-cancel="${escapeHtml(c.id)}">Cancel</button>` : ""}
+                  <button class="btn-sm danger" data-delete-class="${escapeHtml(c.id)}" data-title="${escapeHtml(c.title)}">Delete</button>
+                </div>
+              </td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+
+    wrap.querySelectorAll("[data-cancel]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        try {
+          await api("/classes?id=eq." + encodeURIComponent(btn.getAttribute("data-cancel")), { method: "PATCH", body: { status: "CANCELLED" } });
+          toast("Class cancelled.");
+          await refreshAll();
+        } catch (e) { toast("Failed: " + e.message, true); }
+      });
+    });
+    wrap.querySelectorAll("[data-delete-class]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const title = btn.getAttribute("data-title");
+        if (!confirm(`Delete class "${title}"? This cannot be undone.`)) return;
+        const id = btn.getAttribute("data-delete-class");
+        try {
+          await api("/active_calls?class_id=eq." + encodeURIComponent(id), { method: "DELETE" }).catch(() => {});
+          await api("/classes?id=eq." + encodeURIComponent(id), { method: "DELETE" });
+          toast("Class deleted.");
+          await refreshAll();
+        } catch (e) { toast("Failed: " + e.message, true); }
+      });
+    });
+  }
+
+  // ---------- tabs ----------
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("panel-" + btn.getAttribute("data-tab")).classList.add("active");
+    });
+  });
+
+  // ---------- new class modal ----------
+  const classModal = document.getElementById("classModalBackdrop");
+  document.getElementById("newClassBtn").addEventListener("click", () => {
+    if (students.length === 0 || teachers.length === 0) {
+      toast("You need at least one registered student and one teacher before scheduling a class.", true);
+      return;
+    }
+    document.getElementById("classStudent").innerHTML = students.map(s => `<option value="${escapeHtml(s.id)}" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)} (${escapeHtml(s.email)})</option>`).join("");
+    document.getElementById("classTeacher").innerHTML = teacherOptions();
+    classModal.classList.add("show");
+  });
+  document.getElementById("classModalCancel").addEventListener("click", () => classModal.classList.remove("show"));
+  classModal.addEventListener("click", (e) => { if (e.target === classModal) classModal.classList.remove("show"); });
+
+  document.getElementById("classForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const studentOpt = document.getElementById("classStudent").selectedOptions[0];
+    const teacherOpt = document.getElementById("classTeacher").selectedOptions[0];
+    if (!studentOpt || !teacherOpt) return;
+
+    const id = "cls_" + Date.now().toString(36);
+    const body = {
+      id,
+      title: document.getElementById("classTitle").value.trim(),
+      teacher_name: teacherOpt.getAttribute("data-name"),
+      teacher_id: teacherOpt.value,
+      student_name: studentOpt.getAttribute("data-name"),
+      student_id: studentOpt.value,
+      date: document.getElementById("classDate").value.trim(),
+      start_time: document.getElementById("classTime").value.trim(),
+      duration_minutes: parseInt(document.getElementById("classDuration").value, 10) || 45,
+      status: "SCHEDULED",
+      description: "Live recitation session covering " + document.getElementById("classTopic").value.trim(),
+      livekit_room_name: "quran-class-" + id,
+      surah_topic: document.getElementById("classTopic").value.trim(),
+    };
+    try {
+      await api("/classes", { method: "POST", body });
+      toast("Class scheduled.");
+      classModal.classList.remove("show");
+      await refreshAll();
+    } catch (err) {
+      toast("Failed: " + err.message, true);
+    }
+  });
+
+  // ---------- login form ----------
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const errEl = document.getElementById("loginError");
+    const btn = document.getElementById("loginBtn");
+    errEl.style.display = "none";
+    btn.disabled = true;
+    btn.textContent = "Signing in...";
+    try {
+      await signIn(email, password);
+      const profile = await fetchOwnProfile();
+      if (!profile) throw new Error("No profile found for this account.");
+      if (profile.role !== "ADMIN" && profile.role !== "DIRECTOR") {
+        clearSession();
+        throw new Error("This account is a " + profile.role + ", not an administrator.");
+      }
+      showApp(profile);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Sign In";
+    }
+  });
+
+  document.getElementById("signOutBtn").addEventListener("click", signOut);
+
+  // ---------- boot ----------
+  (async function boot() {
+    const saved = loadSession();
+    if (!saved) { showLogin(); return; }
+    session = saved;
+    try {
+      let profile = await fetchOwnProfile();
+      if (!profile) { clearSession(); showLogin(); return; }
+      if (profile.role !== "ADMIN" && profile.role !== "DIRECTOR") {
+        clearSession();
+        showLogin();
+        toast("Signed out: that account is not an administrator.", true);
+        return;
+      }
+      showApp(profile);
+    } catch (_) {
+      clearSession();
+      showLogin();
+    }
+  })();
+})();
+</script>
+</body>
+</html>
