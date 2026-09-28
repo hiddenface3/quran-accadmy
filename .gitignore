@@ -22,3 +22,4 @@ apk-dist/
 *service-account*.json
 latest-build/
 test-extract/
+supabase/.temp/

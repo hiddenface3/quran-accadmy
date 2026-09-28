@@ -154,7 +154,7 @@ serve(async (req: Request) => {
 
     const { data: myProfile } = await callerClient
       .from("profiles")
-      .select("role,name")
+      .select("id,role,name")
       .single();
     if (!myProfile) {
       return json({ error: "No profile found for the authenticated user" }, 403);
@@ -162,17 +162,24 @@ serve(async (req: Request) => {
 
     const { data: targetClass } = await callerClient
       .from("classes")
-      .select("teacher_name,student_name,livekit_room_name")
+      .select("teacher_id,student_id,teacher_name,student_name,livekit_room_name")
       .eq("id", classId)
       .maybeSingle();
     if (!targetClass) {
       return json({ error: "You do not have access to this class" }, 403);
     }
 
+    // Prefer id matching (stable, unambiguous); fall back to name matching only for legacy
+    // classes created before teacher_id/student_id existed.
     const isAdmin = myProfile.role === "ADMIN" || myProfile.role === "DIRECTOR";
-    const isTeacherForClass =
-      isAdmin || (myProfile.role === "TEACHER" && myProfile.name === targetClass.teacher_name);
-    const isStudentForClass = myProfile.name === targetClass.student_name;
+    const matchesTeacher = targetClass.teacher_id
+      ? myProfile.id === targetClass.teacher_id
+      : myProfile.name === targetClass.teacher_name;
+    const matchesStudent = targetClass.student_id
+      ? myProfile.id === targetClass.student_id
+      : myProfile.name === targetClass.student_name;
+    const isTeacherForClass = isAdmin || (myProfile.role === "TEACHER" && matchesTeacher);
+    const isStudentForClass = matchesStudent;
 
     if (action === "INCOMING_CALL" && !isTeacherForClass) {
       return json({ error: "Only the assigned teacher (or an admin) can start this call" }, 403);

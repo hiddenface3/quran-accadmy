@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
@@ -30,6 +31,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -73,6 +76,8 @@ fun ClassesScreen(
     val allClasses by viewModel.classes.collectAsStateWithLifecycle()
     val upcomingClasses by viewModel.upcomingClasses.collectAsStateWithLifecycle()
     val previousClasses by viewModel.previousClasses.collectAsStateWithLifecycle()
+    val students by viewModel.students.collectAsStateWithLifecycle()
+    val teachers by viewModel.teachers.collectAsStateWithLifecycle()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var selectedClassForDetails by remember { mutableStateOf<QuranClass?>(null) }
@@ -412,6 +417,12 @@ fun ClassesScreen(
         var newTopic by remember { mutableStateOf("Surah Al-Mulk Ayah 16-30") }
         var newDate by remember { mutableStateOf("Thursday, Oct 1") }
         var newTime by remember { mutableStateOf("6:00 PM") }
+        var selectedStudent by remember { mutableStateOf(students.firstOrNull()?.name ?: "") }
+        var selectedTeacher by remember { mutableStateOf(teachers.firstOrNull()?.name ?: "") }
+        var selectedStudentId by remember { mutableStateOf(students.firstOrNull()?.id ?: "") }
+        var selectedTeacherId by remember { mutableStateOf(teachers.firstOrNull()?.id ?: "") }
+        var studentMenuExpanded by remember { mutableStateOf(false) }
+        var teacherMenuExpanded by remember { mutableStateOf(false) }
 
         AlertDialog(
             onDismissRequest = { showCreateClassDialog = false },
@@ -434,6 +445,91 @@ fun ClassesScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Student picker - must be a real registered account, never free text,
+                    // otherwise the class is invisible to them under RLS and calls can't connect.
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = selectedStudent,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Assigned Student") },
+                            placeholder = { if (students.isEmpty()) Text("No students registered yet") },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.clickable(enabled = students.isNotEmpty()) { studentMenuExpanded = true }
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(enabled = students.isNotEmpty()) { studentMenuExpanded = true },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        DropdownMenu(
+                            expanded = studentMenuExpanded,
+                            onDismissRequest = { studentMenuExpanded = false }
+                        ) {
+                            students.forEach { s ->
+                                DropdownMenuItem(
+                                    text = { Text("${s.name} (${s.email})") },
+                                    onClick = {
+                                        selectedStudent = s.name
+                                        selectedStudentId = s.id
+                                        if (s.assignedTeacherName.isNotBlank()) {
+                                            selectedTeacher = s.assignedTeacherName
+                                            selectedTeacherId = teachers.firstOrNull {
+                                                it.name.equals(s.assignedTeacherName, ignoreCase = true)
+                                            }?.id ?: selectedTeacherId
+                                        }
+                                        studentMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Teacher picker - same reasoning as above.
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = selectedTeacher,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Assigned Teacher") },
+                            placeholder = { if (teachers.isEmpty()) Text("No teachers registered yet") },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.clickable(enabled = teachers.isNotEmpty()) { teacherMenuExpanded = true }
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(enabled = teachers.isNotEmpty()) { teacherMenuExpanded = true },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        DropdownMenu(
+                            expanded = teacherMenuExpanded,
+                            onDismissRequest = { teacherMenuExpanded = false }
+                        ) {
+                            teachers.forEach { t ->
+                                DropdownMenuItem(
+                                    text = { Text("${t.name} (${t.email})") },
+                                    onClick = {
+                                        selectedTeacher = t.name
+                                        selectedTeacherId = t.id
+                                        teacherMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newTopic,
@@ -464,17 +560,23 @@ fun ClassesScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        if (selectedStudent.isBlank() || selectedTeacher.isBlank()) {
+                            return@Button
+                        }
                         viewModel.createClass(
                             title = newTitle,
-                            teacher = currentUser.name,
-                            student = "Zaid Ahmed",
+                            teacher = selectedTeacher,
+                            student = selectedStudent,
                             date = newDate,
                             time = newTime,
                             duration = 45,
-                            topic = newTopic
+                            topic = newTopic,
+                            teacherId = selectedTeacherId,
+                            studentId = selectedStudentId
                         )
                         showCreateClassDialog = false
                     },
+                    enabled = selectedStudent.isNotBlank() && selectedTeacher.isNotBlank(),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669))
                 ) {

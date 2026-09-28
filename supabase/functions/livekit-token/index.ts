@@ -50,7 +50,7 @@ serve(async (req: Request) => {
 
     // RLS scopes this to exactly the caller's own row (see "Users read own profile" policy).
     // If it comes back empty, the JWT didn't resolve to a real, provisioned profile.
-    const profileResp = await fetch(`${supabaseUrl}/rest/v1/profiles?select=role,name`, {
+    const profileResp = await fetch(`${supabaseUrl}/rest/v1/profiles?select=id,role,name`, {
       headers: restHeaders,
     });
     if (!profileResp.ok) {
@@ -66,7 +66,7 @@ serve(async (req: Request) => {
     // student or teacher, or all of them if they're an admin/director). An empty result here
     // means the caller has no legitimate relationship to this class at all.
     const classResp = await fetch(
-      `${supabaseUrl}/rest/v1/classes?id=eq.${encodeURIComponent(classId)}&select=teacher_name,student_name`,
+      `${supabaseUrl}/rest/v1/classes?id=eq.${encodeURIComponent(classId)}&select=teacher_id,student_id,teacher_name,student_name`,
       { headers: restHeaders },
     );
     if (!classResp.ok) {
@@ -78,10 +78,17 @@ serve(async (req: Request) => {
       return json({ error: "You do not have access to this class" }, 403);
     }
 
+    // Prefer id matching (stable, unambiguous); fall back to name matching only for legacy
+    // classes created before teacher_id/student_id existed.
     const isAdmin = profile.role === "ADMIN" || profile.role === "DIRECTOR";
-    const isTeacherForClass =
-      isAdmin || (profile.role === "TEACHER" && profile.name === targetClass.teacher_name);
-    const isStudentForClass = profile.name === targetClass.student_name;
+    const matchesTeacher = targetClass.teacher_id
+      ? profile.id === targetClass.teacher_id
+      : profile.name === targetClass.teacher_name;
+    const matchesStudent = targetClass.student_id
+      ? profile.id === targetClass.student_id
+      : profile.name === targetClass.student_name;
+    const isTeacherForClass = isAdmin || (profile.role === "TEACHER" && matchesTeacher);
+    const isStudentForClass = matchesStudent;
 
     if (!isTeacherForClass && !isStudentForClass) {
       return json({ error: "You are not a participant in this class" }, 403);

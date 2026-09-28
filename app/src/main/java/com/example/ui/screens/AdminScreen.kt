@@ -654,6 +654,8 @@ fun AdminScreen(
         var duration by remember { mutableStateOf("45") }
         var selectedStudent by remember { mutableStateOf(students.firstOrNull()?.name ?: "") }
         var selectedTeacher by remember { mutableStateOf(teachers.firstOrNull()?.name ?: "") }
+        var selectedStudentId by remember { mutableStateOf(students.firstOrNull()?.id ?: "") }
+        var selectedTeacherId by remember { mutableStateOf(teachers.firstOrNull()?.id ?: "") }
 
         var studentMenuExpanded by remember { mutableStateOf(false) }
         var teacherMenuExpanded by remember { mutableStateOf(false) }
@@ -703,8 +705,12 @@ fun AdminScreen(
                                         text = { Text("${s.name} (${s.email})") },
                                         onClick = {
                                             selectedStudent = s.name
+                                            selectedStudentId = s.id
                                             if (s.assignedTeacherName.isNotBlank()) {
                                                 selectedTeacher = s.assignedTeacherName
+                                                selectedTeacherId = teachers.firstOrNull {
+                                                    it.name.equals(s.assignedTeacherName, ignoreCase = true)
+                                                }?.id ?: selectedTeacherId
                                             }
                                             studentMenuExpanded = false
                                         }
@@ -746,6 +752,7 @@ fun AdminScreen(
                                         text = { Text("${t.name} (${t.email})") },
                                         onClick = {
                                             selectedTeacher = t.name
+                                            selectedTeacherId = t.id
                                             teacherMenuExpanded = false
                                         }
                                     )
@@ -792,7 +799,9 @@ fun AdminScreen(
                             date = date,
                             time = time,
                             duration = duration.toIntOrNull() ?: 45,
-                            topic = topic
+                            topic = topic,
+                            teacherId = selectedTeacherId,
+                            studentId = selectedStudentId
                         )
                         feedbackBannerMessage = "Scheduled class for $selectedStudent with $selectedTeacher at $time!"
                         showCreateClassDialog = false

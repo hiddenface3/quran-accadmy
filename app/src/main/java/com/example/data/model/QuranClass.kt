@@ -13,6 +13,11 @@ data class QuranClass(
     val teacherName: String,
     val teacherTitle: String = "Certified Qari & Hifz Instructor",
     val studentName: String,
+    // Real profile ids (auth.uid()), preferred over the name fields above for server-side
+    // matching wherever possible - a class created via a free-text name field (or whose
+    // teacher/student later renamed themselves) can't be reliably matched by name alone.
+    val teacherId: String = "",
+    val studentId: String = "",
     val date: String,
     val startTime: String,
     val durationMinutes: Int = 45,

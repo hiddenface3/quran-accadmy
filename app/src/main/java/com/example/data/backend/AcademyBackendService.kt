@@ -51,6 +51,8 @@ class AcademyBackendService {
     // Supabase Realtime WebSocket engine
     private var realtimeWebSocket: WebSocket? = null
     private var realtimeHeartbeatJob: Job? = null
+    private var realtimeReconnectJob: Job? = null
+    private var lastCallChangedCallback: ((ActiveCallInfo) -> Unit)? = null
     private val realtimeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     // Instant Realtime callbacks
@@ -59,11 +61,18 @@ class AcademyBackendService {
     /**
      * Subscribe directly to Supabase Postgres Changes WebSocket (realtime.channel).
      * Replaces aggressive HTTP polling with zero-latency push events (<50ms).
+     *
+     * OkHttp does not auto-reconnect a dropped WebSocket on its own - without the retry logic
+     * below, any network blip, backgrounding, or doze-mode suspension silently kills Realtime
+     * for the rest of the app session (chat/call-signal delivery would then depend entirely on
+     * whatever periodic REST polling still exists elsewhere).
      */
     fun subscribeToRealtimeActiveCalls(onCallChanged: (ActiveCallInfo) -> Unit) {
+        lastCallChangedCallback = onCallChanged
         try {
             realtimeWebSocket?.close(1000, "Reconnecting")
             realtimeHeartbeatJob?.cancel()
+            realtimeReconnectJob?.cancel()
 
             val baseWs = SupabaseConfig.projectUrl
                 .replace("https://", "wss://")
@@ -168,14 +177,32 @@ class AcademyBackendService {
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Log.w(TAG, "Supabase Realtime socket error: ${t.message}")
+                    scheduleReconnect()
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     Log.i(TAG, "Supabase Realtime socket closed: code=$code, reason=$reason")
+                    // Code 1000 only ever comes from our own deliberate close at the top of this
+                    // function when re-subscribing - anything else is an unplanned drop.
+                    if (code != 1000) {
+                        scheduleReconnect()
+                    }
                 }
             })
         } catch (e: Exception) {
             Log.w(TAG, "Failed to initialize Supabase Realtime WebSocket: ${e.message}")
+            scheduleReconnect()
+        }
+    }
+
+    /** Reconnects after a short delay, re-reading the token fresh (fixes it too if it was stale). */
+    private fun scheduleReconnect() {
+        val callback = lastCallChangedCallback ?: return
+        realtimeReconnectJob?.cancel()
+        realtimeReconnectJob = realtimeScope.launch {
+            delay(4000)
+            Log.i(TAG, "Attempting Supabase Realtime WebSocket reconnect...")
+            subscribeToRealtimeActiveCalls(callback)
         }
     }
 
@@ -347,6 +374,8 @@ class AcademyBackendService {
                 put("teacher_name", qClass.teacherName)
                 put("teacher_title", qClass.teacherTitle)
                 put("student_name", qClass.studentName)
+                if (qClass.teacherId.isNotBlank()) put("teacher_id", qClass.teacherId)
+                if (qClass.studentId.isNotBlank()) put("student_id", qClass.studentId)
                 put("date", qClass.date)
                 put("start_time", qClass.startTime)
                 put("duration_minutes", qClass.durationMinutes)
@@ -412,6 +441,8 @@ class AcademyBackendService {
                         val desc = obj.optString("description", "")
                         val room = obj.optString("livekit_room_name", "room_$id")
                         val topic = obj.optString("surah_topic", "Tajweed Recitation")
+                        val teacherId = obj.optString("teacher_id", "")
+                        val studentId = obj.optString("student_id", "")
 
                         list.add(
                             QuranClass(
@@ -420,6 +451,8 @@ class AcademyBackendService {
                                 teacherName = teacherName,
                                 teacherTitle = teacherTitle,
                                 studentName = studentName,
+                                teacherId = teacherId,
+                                studentId = studentId,
                                 date = date,
                                 startTime = startTime,
                                 durationMinutes = duration,

@@ -108,6 +108,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val saved = authManager.prefs.getSavedUser()
         if (saved != null) {
             repository.updateCurrentUser(saved)
+            // AuthManager's own init (which just ran, restoring SupabaseSession from prefs)
+            // happens after AcademyRepository's constructor already opened its Realtime socket
+            // with whatever token existed at that moment - reconnect now with the real one.
+            repository.reconnectRealtime()
         }
         com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
 
@@ -154,6 +158,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val result = authManager.signInWithGoogle()
             result.onSuccess { user ->
                 repository.updateCurrentUser(user)
+                repository.reconnectRealtime()
                 com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
                 onSuccess()
             }.onFailure { e ->
@@ -177,6 +182,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _authBusy.value = false
             result.onSuccess { user ->
                 repository.updateCurrentUser(user)
+                repository.reconnectRealtime()
                 com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
                 syncDeviceTokenToBackend(user.id)
             }
@@ -191,6 +197,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _authBusy.value = false
             result.onSuccess { user ->
                 repository.updateCurrentUser(user)
+                repository.reconnectRealtime()
                 com.example.service.AcademyFirebaseMessagingService.initializeTopics(authManager.prefs)
                 syncDeviceTokenToBackend(user.id)
             }
@@ -392,7 +399,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         date: String,
         time: String,
         duration: Int,
-        topic: String
+        topic: String,
+        teacherId: String = "",
+        studentId: String = ""
     ) {
         val newId = "cls_${System.currentTimeMillis() % 100000}"
         val newClass = QuranClass(
@@ -400,6 +409,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             title = title,
             teacherName = teacher,
             studentName = student,
+            teacherId = teacherId,
+            studentId = studentId,
             date = date,
             startTime = time,
             durationMinutes = duration,

@@ -51,6 +51,27 @@ class AcademyRepository {
         startPeriodicSync()
     }
 
+    /**
+     * Re-opens the Realtime WebSocket with whatever token is current right now.
+     *
+     * [setupRealtimeCallSubscription] captures the bearer token into the socket's connect URL
+     * and join payloads ONCE, at the moment it's called. It runs from this class's own `init`
+     * block, which fires as soon as `AcademyRepository()` is constructed in MainViewModel -
+     * before AuthManager (declared right after it) has restored a saved session, and long
+     * before a fresh sign-up/sign-in on a blank install ever completes. Either way, the very
+     * first subscribe call almost always captures an empty/anon token.
+     *
+     * Since RLS now only grants `authenticated` (not `anon`) on messages/active_calls, a
+     * socket stuck on the anon key doesn't error - it just silently receives zero
+     * postgres_changes events for the rest of the app session. Chat has no periodic re-fetch
+     * fallback (that was deliberately removed once Realtime was assumed reliable), so this is
+     * why messages from the other party can take a full app restart to show up, or never show
+     * up at all. Call this whenever auth state actually changes to Authenticated.
+     */
+    fun reconnectRealtime() {
+        setupRealtimeCallSubscription()
+    }
+
     private fun setupRealtimeCallSubscription() {
         backendService.onChatMessageReceived = { incomingMsg ->
             val current = _currentUser.value
