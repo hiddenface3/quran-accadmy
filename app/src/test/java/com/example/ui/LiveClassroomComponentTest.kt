@@ -2,7 +2,7 @@ package com.example.ui
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import com.example.data.model.AudioRoute
+import com.example.utils.AudioRoute
 import com.example.data.model.QuranVerse
 import com.example.ui.screens.classroom.LiveClassControlBar
 import com.example.ui.screens.classroom.QuranCompanionCard

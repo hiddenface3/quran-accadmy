@@ -22,7 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.QuranClass
 import com.example.data.model.UserRole
 import com.example.ui.theme.EmeraldPrimary
-import com.example.ui.viewmodel.MainViewModel
+import com.example.ui.MainViewModel
 
 @Composable
 fun InClassChatSheet(
