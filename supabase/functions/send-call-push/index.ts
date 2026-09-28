@@ -14,6 +14,110 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// ─── FCM v1 via Service Account OAuth2 ───────────────────────────────────────
+// Legacy FCM (key= server key) was deprecated Jun 2023 and disabled for new
+// projects. FCM HTTP v1 uses a short-lived OAuth2 access token minted from the
+// Firebase Admin service-account credentials stored as a Supabase secret.
+
+/** Base64url-encode a string without padding */
+function b64url(str: string): string {
+  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** Encode an ArrayBuffer to base64url */
+function ab2b64url(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let str = "";
+  bytes.forEach((b) => (str += String.fromCharCode(b)));
+  return b64url(str);
+}
+
+/** Mint a short-lived (1-hour) OAuth2 access token for FCM v1 */
+async function getFcmAccessToken(serviceAccountJson: string): Promise<string> {
+  const sa = JSON.parse(serviceAccountJson);
+  const now = Math.floor(Date.now() / 1000);
+
+  const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const payload = b64url(
+    JSON.stringify({
+      iss: sa.client_email,
+      scope: "https://www.googleapis.com/auth/firebase.messaging",
+      aud: sa.token_uri,
+      iat: now,
+      exp: now + 3600,
+    }),
+  );
+
+  const sigInput = `${header}.${payload}`;
+
+  // Strip PEM headers and decode to binary
+  const pemBody = sa.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+    .replace(/-----END PRIVATE KEY-----/g, "")
+    .replace(/\s/g, "");
+  const binaryKey = Uint8Array.from(atob(pemBody), (c) => c.charCodeAt(0));
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey.buffer,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    cryptoKey,
+    new TextEncoder().encode(sigInput),
+  );
+
+  const jwt = `${sigInput}.${ab2b64url(signature)}`;
+
+  const tokenResp = await fetch(sa.token_uri, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  const tokenData = await tokenResp.json();
+  if (!tokenData.access_token) {
+    throw new Error(`FCM token exchange failed: ${JSON.stringify(tokenData)}`);
+  }
+  return tokenData.access_token as string;
+}
+
+/** Send an FCM v1 data push to a single device token */
+async function sendFcmV1Push(
+  projectId: string,
+  accessToken: string,
+  deviceToken: string,
+  data: Record<string, string>,
+): Promise<boolean> {
+  const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      message: {
+        token: deviceToken,
+        // data-only (no notification block) so Android handles it as a
+        // high-priority background data message even when the app is killed.
+        data,
+        android: { priority: "high" },
+      },
+    }),
+  });
+  return resp.ok;
+}
+
+// ─── Main handler ─────────────────────────────────────────────────────────────
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -23,15 +127,15 @@ serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const fcmServerKey = Deno.env.get("FCM_SERVER_KEY") || "";
+    // Full service-account JSON stored as a single Supabase secret.
+    const firebaseServiceAccountJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON") || "";
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-      return json({ error: "Server missing required configuration" }, 500);
+      return json({ error: "Server missing required Supabase configuration" }, 500);
     }
 
-    // Must be the CALLER's own Supabase Auth JWT. We use it (via the anon-key client below)
-    // purely to ask "what is this person allowed to see", which is how we verify they're
-    // actually the teacher (or admin) on the class before we ring anyone or write anything.
+    // Caller must supply their own Supabase Auth JWT so we can verify identity
+    // via RLS before writing or pushing anything.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
       return json({ error: "Missing Authorization bearer token" }, 401);
@@ -43,6 +147,7 @@ serve(async (req: Request) => {
       return json({ error: "Missing required field: 'class_id'" }, 400);
     }
 
+    // Use caller's JWT for RLS-gated reads (profile + class membership check).
     const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: `Bearer ${callerJwt}` } },
     });
@@ -55,8 +160,6 @@ serve(async (req: Request) => {
       return json({ error: "No profile found for the authenticated user" }, 403);
     }
 
-    // RLS on `classes` (via the caller's own JWT) already restricts this to a row the caller
-    // is actually allowed to see - i.e. they're the teacher, the student, or an admin.
     const { data: targetClass } = await callerClient
       .from("classes")
       .select("teacher_name,student_name,livekit_room_name")
@@ -67,7 +170,8 @@ serve(async (req: Request) => {
     }
 
     const isAdmin = myProfile.role === "ADMIN" || myProfile.role === "DIRECTOR";
-    const isTeacherForClass = isAdmin || (myProfile.role === "TEACHER" && myProfile.name === targetClass.teacher_name);
+    const isTeacherForClass =
+      isAdmin || (myProfile.role === "TEACHER" && myProfile.name === targetClass.teacher_name);
     const isStudentForClass = myProfile.name === targetClass.student_name;
 
     if (action === "INCOMING_CALL" && !isTeacherForClass) {
@@ -82,8 +186,8 @@ serve(async (req: Request) => {
     const roomName = targetClass.livekit_room_name || `quran-room-${classId}`;
     const isRinging = action === "INCOMING_CALL";
 
-    // Privileged writes/lookups only happen server-side, from here on, using values we just
-    // verified ourselves - never values the client handed us directly.
+    // Privileged writes use the service-role key (bypasses RLS intentionally
+    // because we've already verified the caller's rights above).
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     await serviceClient
@@ -101,29 +205,31 @@ serve(async (req: Request) => {
         { onConflict: "class_id" },
       );
 
+    // FCM v1 push — only attempted when service-account credentials are present.
     let fcmDispatched = false;
-    if (isRinging && fcmServerKey) {
-      const { data: studentProfile } = await serviceClient
-        .from("profiles")
-        .select("fcm_token")
-        .eq("name", studentName)
-        .maybeSingle();
-      const recipientToken = studentProfile?.fcm_token;
+    if (isRinging && firebaseServiceAccountJson) {
+      try {
+        const { data: studentProfile } = await serviceClient
+          .from("profiles")
+          .select("fcm_token")
+          .eq("name", studentName)
+          .maybeSingle();
 
-      if (recipientToken) {
-        const fcmResponse = await fetch("https://fcm.googleapis.com/fcm/send", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `key=${fcmServerKey}`,
-          },
-          body: JSON.stringify({
-            to: recipientToken,
-            priority: "high",
-            data: { action, class_id: classId, teacher_name: teacherName, student_name: studentName, room_name: roomName },
-          }),
-        });
-        fcmDispatched = fcmResponse.ok;
+        const recipientToken = studentProfile?.fcm_token;
+        if (recipientToken) {
+          const sa = JSON.parse(firebaseServiceAccountJson);
+          const accessToken = await getFcmAccessToken(firebaseServiceAccountJson);
+          fcmDispatched = await sendFcmV1Push(sa.project_id, accessToken, recipientToken, {
+            action,
+            class_id: classId,
+            teacher_name: teacherName,
+            student_name: studentName,
+            room_name: roomName,
+          });
+        }
+      } catch (fcmErr) {
+        // FCM failure is non-fatal — Realtime WebSocket still signals the student.
+        console.warn("FCM push failed (non-fatal):", fcmErr);
       }
     }
 
