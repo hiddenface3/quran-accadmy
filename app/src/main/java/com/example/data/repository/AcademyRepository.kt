@@ -71,8 +71,7 @@ class AcademyRepository {
             if (current.role == UserRole.STUDENT) {
                 val cleanStudent = current.name.trim().lowercase()
                 val callStudent = activeCall.studentName.trim().lowercase()
-                val isMatch = cleanStudent.isEmpty() || callStudent.isEmpty() ||
-                        callStudent == cleanStudent || callStudent.contains(cleanStudent) || cleanStudent.contains(callStudent)
+                val isMatch = cleanStudent.isNotEmpty() && callStudent.isNotEmpty() && callStudent == cleanStudent
 
                 if (isMatch) {
                     if (activeCall.isRinging) {
@@ -234,35 +233,9 @@ class AcademyRepository {
                         _teachers.value = updatedTeachers
                     }
 
-                    // 3. If current user is a Student, check if any class is ringing for this student
-                    val current = _currentUser.value
-                    if (current.role == UserRole.STUDENT && _incomingCallClass.value == null) {
-                        val callResult = backendService.checkIncomingCallForStudent(current.name)
-                        callResult.onSuccess { activeCall ->
-                            if (activeCall != null && activeCall.isRinging) {
-                                val existingClass = _classes.value.firstOrNull { it.id == activeCall.classId }
-                                val targetClass = existingClass ?: QuranClass(
-                                    id = activeCall.classId,
-                                    title = "Quran Reading & Tajweed Rules",
-                                    teacherName = activeCall.teacherName,
-                                    teacherTitle = "Certified Qari",
-                                    studentName = current.name,
-                                    date = "Today",
-                                    startTime = "Now",
-                                    durationMinutes = 45,
-                                    status = ClassStatus.LIVE_NOW,
-                                    description = "Live Quran Recitation Session with ${activeCall.teacherName}",
-                                    liveKitRoomName = activeCall.roomName,
-                                    surahTopic = "Surah Al-Mulk"
-                                )
-                                _incomingCallClass.value = targetClass
-                            }
-                        }
-                    }
-
-                    // Removed: 3-second HTTP polling for chat messages. 
-                    // This was causing UI flickering and lag. We now rely on the <50ms Supabase 
-                    // Realtime WebSocket subscription setup in setupRealtimeCallSubscription().
+                    // Note: Incoming call signaling is handled via <50ms Supabase Realtime WebSocket 
+                    // (setupRealtimeCallSubscription) and high-priority FCM data push notifications.
+                    // Redundant REST polling was removed to eliminate duplicate alerts and conserve battery/bandwidth.
 
                 } catch (e: Exception) {
                     // Ignore transient network errors

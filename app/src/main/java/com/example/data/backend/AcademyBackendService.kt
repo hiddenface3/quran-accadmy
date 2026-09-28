@@ -562,13 +562,10 @@ class AcademyBackendService {
                         val roomName = obj.optString("room_name", "room_$classId")
                         val isRinging = obj.optBoolean("is_ringing", false)
 
-                        val isMatch = isRinging && classId.isNotBlank() && (
-                            cleanStudentName.isEmpty() ||
-                            callStudent.isEmpty() ||
-                            callStudent == cleanStudentName ||
-                            callStudent.contains(cleanStudentName) ||
-                            cleanStudentName.contains(callStudent)
-                        )
+                        val isMatch = isRinging && classId.isNotBlank() &&
+                            cleanStudentName.isNotEmpty() &&
+                            callStudent.isNotEmpty() &&
+                            callStudent == cleanStudentName
 
                         if (isMatch) {
                             return@withContext Result.success(
