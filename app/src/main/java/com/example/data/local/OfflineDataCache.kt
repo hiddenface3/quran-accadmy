@@ -1,17 +1,27 @@
 package com.example.data.local
 
 import android.content.Context
+import com.example.data.local.db.QuranAcademyDatabase
+import com.example.data.local.db.entity.MessageEntity
+import com.example.data.local.db.entity.QuranClassEntity
 import com.example.data.model.ClassStatus
 import com.example.data.model.Message
 import com.example.data.model.QuranClass
 import com.example.data.model.UserRole
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
 /**
  * Offline persistent storage cache for Quran Academy Connect.
- * Provides Single Source of Truth (SSOT) disk fallback when network is unavailable.
+ * Upgraded to Full SQLite/Room DB architecture with JSON/memory fallback for instantaneous warm boot.
  */
 object OfflineDataCache {
 
@@ -20,9 +30,16 @@ object OfflineDataCache {
     private const val MESSAGES_FILE = "cached_messages.json"
 
     private var appContext: Context? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    @Volatile
+    var database: QuranAcademyDatabase? = null
+        private set
 
     fun initialize(context: Context) {
-        appContext = context.applicationContext
+        val app = context.applicationContext
+        appContext = app
+        database = QuranAcademyDatabase.getInstance(app)
     }
 
     private fun getFile(filename: String): File? {
@@ -32,7 +49,33 @@ object OfflineDataCache {
         return File(dir, filename)
     }
 
+    fun getAllClassesFlow(): Flow<List<QuranClass>>? {
+        return database?.quranClassDao()?.getAllClassesFlow()?.map { list ->
+            list.map { it.toDomain() }
+        }
+    }
+
+    fun getAllMessagesFlow(): Flow<List<Message>>? {
+        return database?.messageDao()?.getAllMessagesFlow()?.map { list ->
+            list.map { it.toDomain() }
+        }
+    }
+
     fun saveClasses(classes: List<QuranClass>) {
+        // 1. Persist to Room SQLite Database
+        val db = database
+        if (db != null) {
+            scope.launch {
+                try {
+                    val entities = classes.map { QuranClassEntity.fromDomain(it) }
+                    db.quranClassDao().insertClasses(entities)
+                } catch (e: Exception) {
+                    android.util.Log.w("OfflineDataCache", "Room insertClasses error: ${e.message}")
+                }
+            }
+        }
+
+        // 2. Persist to instant warm-boot JSON file cache
         try {
             val file = getFile(CLASSES_FILE) ?: return
             val jsonArray = JSONArray()
@@ -60,6 +103,18 @@ object OfflineDataCache {
     }
 
     fun loadClasses(): List<QuranClass>? {
+        // Try Room SQLite DB first if initialized
+        val db = database
+        if (db != null) {
+            try {
+                val dbClasses = runBlocking(Dispatchers.IO) {
+                    db.quranClassDao().getAllClasses().map { it.toDomain() }
+                }
+                if (dbClasses.isNotEmpty()) return dbClasses
+            } catch (_: Exception) {}
+        }
+
+        // Fallback to warm-boot file cache
         return try {
             val file = getFile(CLASSES_FILE) ?: return null
             if (!file.exists()) return null
@@ -97,6 +152,20 @@ object OfflineDataCache {
     }
 
     fun saveMessages(messages: List<Message>) {
+        // 1. Persist to Room SQLite Database
+        val db = database
+        if (db != null) {
+            scope.launch {
+                try {
+                    val entities = messages.map { MessageEntity.fromDomain(it) }
+                    db.messageDao().insertMessages(entities)
+                } catch (e: Exception) {
+                    android.util.Log.w("OfflineDataCache", "Room insertMessages error: ${e.message}")
+                }
+            }
+        }
+
+        // 2. Persist to warm-boot file cache
         try {
             val file = getFile(MESSAGES_FILE) ?: return
             val jsonArray = JSONArray()
@@ -118,6 +187,18 @@ object OfflineDataCache {
     }
 
     fun loadMessages(): List<Message>? {
+        // Try Room SQLite DB first
+        val db = database
+        if (db != null) {
+            try {
+                val dbMessages = runBlocking(Dispatchers.IO) {
+                    db.messageDao().getAllMessages().map { it.toDomain() }
+                }
+                if (dbMessages.isNotEmpty()) return dbMessages
+            } catch (_: Exception) {}
+        }
+
+        // Fallback to warm-boot file cache
         return try {
             val file = getFile(MESSAGES_FILE) ?: return null
             if (!file.exists()) return null

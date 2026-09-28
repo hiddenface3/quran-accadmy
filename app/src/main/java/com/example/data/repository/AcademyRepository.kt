@@ -32,6 +32,20 @@ class AcademyRepository {
     private var syncJob: Job? = null
 
     init {
+        scope.launch {
+            com.example.data.local.OfflineDataCache.getAllClassesFlow()?.collect { roomClasses ->
+                if (roomClasses.isNotEmpty()) {
+                    _classes.value = roomClasses
+                }
+            }
+        }
+        scope.launch {
+            com.example.data.local.OfflineDataCache.getAllMessagesFlow()?.collect { roomMessages ->
+                if (roomMessages.isNotEmpty()) {
+                    _messages.value = roomMessages
+                }
+            }
+        }
         scope.launch { syncDataNow() }
         setupRealtimeCallSubscription()
         startPeriodicSync()
@@ -46,7 +60,9 @@ class AcademyRepository {
 
             val existing = _messages.value
             if (existing.none { it.id == msgWithMe.id }) {
-                _messages.value = existing + msgWithMe
+                val updated = existing + msgWithMe
+                _messages.value = updated
+                com.example.data.local.OfflineDataCache.saveMessages(updated)
             }
         }
 
@@ -543,6 +559,7 @@ class AcademyRepository {
             isFromMe = true
         )
         _messages.value = _messages.value + newMessage
+        com.example.data.local.OfflineDataCache.saveMessages(_messages.value)
 
         scope.launch(Dispatchers.IO) {
             backendService.sendChatMessage(newMessage)
@@ -576,7 +593,9 @@ class AcademyRepository {
             it.text == incomingMsg.text && !it.isFromMe && it.timestamp == incomingMsg.timestamp 
         }
         if (!isDuplicate) {
-            _messages.value = existing + incomingMsg
+            val updated = existing + incomingMsg
+            _messages.value = updated
+            com.example.data.local.OfflineDataCache.saveMessages(updated)
         }
     }
 
